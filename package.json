@@ -1,10 +1,10 @@
 {
-  "name": "elajs",
+  "name": "ela-js",
   "version": "0.0.1",
   "description": "",
-  "main": "dist/elajs.cjs.js",
-  "module": "dist/elajs.esm.js",
-  "browser": "dist/elajs.umd.js",
+  "main": "dist/ela-js.cjs.js",
+  "module": "dist/ela-js.esm.js",
+  "browser": "dist/ela-js.umd.js",
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",

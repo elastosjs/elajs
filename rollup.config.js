@@ -8,7 +8,7 @@ export default [
   {
     input: 'src/main.js',
     output: {
-      name: 'elajs',
+      name: 'ela-js',
       file: pkg.browser,
       format: 'umd'
     },
