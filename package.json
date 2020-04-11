@@ -1,0 +1,29 @@
+{
+  "name": "elajs",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/elajs.cjs.js",
+  "module": "dist/elajs.esm.js",
+  "browser": "dist/elajs.umd.js",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "node test/test.js",
+    "pretest": "npm run build"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.9.0",
+    "@babel/preset-env": "^7.9.0",
+    "@rollup/plugin-json": "^4.0.2",
+    "assert": "^2.0.0",
+    "rollup": "^2.3.3",
+    "rollup-plugin-babel": "^4.4.0",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0"
+  },
+  "author": "Clarence Liu - clarence.hl.liu@gmail.com",
+  "license": "MIT",
+  "dependencies": {
+    "lodash": "^4.17.15"
+  }
+}
