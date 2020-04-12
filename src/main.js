@@ -13,7 +13,6 @@ const strToBytes32 = (input) => {
   return targetBuf
 }
 
-// TODO: this needs to trim leading zeroes
 const bytes32ToStr = (buf) => {
   return _.trimStart(buf.toString(), '\u0000')
 }
@@ -34,7 +33,7 @@ const bytes32ToUint = (buf) => {
   return parseInt(buf4.readUInt32BE().toString(10))
 }
 
-// @param hexStr should not have a leading 0x prefix!
+// @param hexStr does not expect to have a leading 0x prefix!
 const hexToBytes = (hexStr) => {
   return Buffer.from(hexStr, 'hex')
 }
