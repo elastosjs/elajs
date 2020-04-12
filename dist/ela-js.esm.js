@@ -1,5 +1,69 @@
 import _ from 'lodash';
 
+function _defineProperty(obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+}
+
+function ownKeys(object, enumerableOnly) {
+  var keys = Object.keys(object);
+
+  if (Object.getOwnPropertySymbols) {
+    var symbols = Object.getOwnPropertySymbols(object);
+    if (enumerableOnly) symbols = symbols.filter(function (sym) {
+      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+    });
+    keys.push.apply(keys, symbols);
+  }
+
+  return keys;
+}
+
+function _objectSpread2(target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = arguments[i] != null ? arguments[i] : {};
+
+    if (i % 2) {
+      ownKeys(Object(source), true).forEach(function (key) {
+        _defineProperty(target, key, source[key]);
+      });
+    } else if (Object.getOwnPropertyDescriptors) {
+      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+    } else {
+      ownKeys(Object(source)).forEach(function (key) {
+        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+      });
+    }
+  }
+
+  return target;
+}
+
+var bytes32ToStr = function bytes32ToStr(buf) {
+  return _.trimStart(buf.toString(), "\0");
+};
+
+var bytes32ToUint = function bytes32ToUint(buf) {
+  var buf4 = new Buffer.alloc(4);
+  buf.copy(buf4, 0, 28);
+  return parseInt(buf4.readUInt32BE().toString(10));
+};
+
+var bytesToTypes = {
+  bytes32ToStr: bytes32ToStr,
+  bytes32ToUint: bytes32ToUint
+};
+
 var strToBytes32 = function strToBytes32(input) {
   var targetBuf = new Buffer.alloc(32);
   var inputBuf = new Buffer.from(input);
@@ -7,11 +71,6 @@ var strToBytes32 = function strToBytes32(input) {
 
   inputBuf.copy(targetBuf, inputByteLen < 32 ? 32 - inputByteLen : 0);
   return targetBuf;
-}; // TODO: this needs to trim leading zeroes
-
-
-var bytes32ToStr = function bytes32ToStr(buf) {
-  return _.trimStart(buf.toString(), "\0");
 };
 
 var uintToBytes32 = function uintToBytes32(input) {
@@ -22,10 +81,38 @@ var uintToBytes32 = function uintToBytes32(input) {
   return targetBuf;
 };
 
-var bytes32ToUint = function bytes32ToUint(buf) {
-  var buf4 = new Buffer.alloc(4);
-  buf.copy(buf4, 0, 28);
-  return parseInt(buf4.readUInt32BE().toString(10));
-}; // @param hexStr should not have a leading 0x prefix!
+var typesToBytes = {
+  strToBytes32: strToBytes32,
+  uintToBytes32: uintToBytes32
+};
 
-export { bytes32ToStr, bytes32ToUint, strToBytes32, uintToBytes32 };
+var _require = require('sha3'),
+    Keccak = _require.Keccak;
+
+var sha3 = new Keccak(256);
+
+function namehashInner(input) {
+  if (input === '') {
+    return new Buffer.alloc(32);
+  }
+
+  var inputSplit = input.split('.');
+  var label = inputSplit.shift();
+  var remainder = inputSplit.join('.');
+  var labelSha3 = sha3.update(label).digest();
+  sha3.reset();
+  var iter = sha3.update(Buffer.concat([namehashInner(remainder), labelSha3])).digest();
+  sha3.reset(); // TODO: figure out why this needs to be here
+
+  return iter;
+}
+
+function namehash(input) {
+  return '0x' + namehashInner(input).toString('hex');
+}
+
+var exports = _objectSpread2({
+  namehash: namehash
+}, bytesToTypes, {}, typesToBytes);
+
+export default exports;
