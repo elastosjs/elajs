@@ -13,6 +13,8 @@ function namehashInner(input){
 
   const labelSha3 = sha3.update(label).digest()
 
+  console.log(labelSha3.toString('hex'))
+
   sha3.reset()
 
   const iter = sha3.update(Buffer.concat([namehashInner(remainder), labelSha3])).digest()
@@ -24,4 +26,20 @@ function namehash(input){
   return '0x' + namehashInner(input).toString('hex')
 }
 
+/*
+function isNamehashSubOf(subKey, base, target){
+
+  // const expectedHash =
+
+}
+
+function namehashSub(subRaw, base){
+  sha3.reset()
+
+  return sha3.update(Buffer.concat([base, subKey])).digest()
+}
+*/
+
 export { namehash }
+
+// 0000000000000000000000000000000000000000000000000000000000000000

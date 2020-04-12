@@ -17203,6 +17203,7 @@
     var label = inputSplit.shift();
     var remainder = inputSplit.join('.');
     var labelSha3 = sha3.update(label).digest();
+    console.log(labelSha3.toString('hex'));
     sha3.reset();
     var iter = sha3.update(Buffer.concat([namehashInner(remainder), labelSha3])).digest();
     sha3.reset(); // TODO: figure out why this needs to be here
@@ -17213,6 +17214,7 @@
   function namehash(input) {
     return '0x' + namehashInner(input).toString('hex');
   }
+   // 0000000000000000000000000000000000000000000000000000000000000000
 
   var _require$1 = require('sha3'),
       Keccak$1 = _require$1.Keccak;
@@ -17220,6 +17222,11 @@
   var sha3$1 = new Keccak$1(256);
 
   function keccak256(input) {
+    if (input.substring(0, 2) === '0x') {
+      input = Buffer.from(input.substring(2), 'hex');
+      console.log(input);
+    }
+
     sha3$1.reset();
     var hash = sha3$1.update(input).digest();
     return '0x' + hash.toString('hex');

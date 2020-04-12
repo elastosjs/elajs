@@ -1,5 +1,5 @@
 
 
-const { namehash } = require('../dist/ela-js.cjs.js')
+const { namehash } = require('../src/namehash')
 
 console.log(namehash(process.argv[2]))
