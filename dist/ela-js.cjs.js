@@ -115,8 +115,20 @@ function namehash(input) {
   return '0x' + namehashInner(input).toString('hex');
 }
 
+var _require$1 = require('sha3'),
+    Keccak$1 = _require$1.Keccak;
+
+var sha3$1 = new Keccak$1(256);
+
+function keccak256(input) {
+  sha3$1.reset();
+  var hash = sha3$1.update(input).digest();
+  return '0x' + hash.toString('hex');
+}
+
 var exports$1 = _objectSpread2({
-  namehash: namehash
+  namehash: namehash,
+  keccak256: keccak256
 }, bytesToTypes, {}, typesToBytes);
 
 module.exports = exports$1;
