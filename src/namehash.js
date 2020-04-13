@@ -13,7 +13,7 @@ function namehashInner(input){
 
   const labelSha3 = sha3.update(label).digest()
 
-  console.log(labelSha3.toString('hex'))
+  // console.log(labelSha3.toString('hex'))
 
   sha3.reset()
 

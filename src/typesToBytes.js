@@ -1,6 +1,6 @@
 
 
-
+// not really needed - use Web3.utils.stringToHex
 const strToBytes32 = (input) => {
 
   const targetBuf = new Buffer.alloc(32)

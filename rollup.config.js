@@ -1,12 +1,14 @@
 import resolve from 'rollup-plugin-node-resolve'
 import commonjs from 'rollup-plugin-commonjs'
 import babel from 'rollup-plugin-babel'
+import json from '@rollup/plugin-json'
 import pkg from './package.json'
 
 export default [
   // browser-friendly UMD build
   {
     input: 'src/main.js',
+    external: ['web3'],
     output: {
       name: 'ela-js',
       file: pkg.browser,
@@ -15,8 +17,12 @@ export default [
     plugins: [
       resolve(), // so Rollup can find `ms`
       commonjs(), // so Rollup can convert `ms` to an ES module
+      json(),
       babel({
-        exclude: ['node_modules/**']
+        runtimeHelpers: true,
+        exclude: ['node_modules/**'],
+        presets: [['@babel/env', { modules: false }]],//, '@babel/react'],
+        plugins: ['@babel/plugin-external-helpers', '@babel/plugin-transform-runtime'],
       })
     ]
   },
@@ -29,14 +35,18 @@ export default [
   // `file` and `format` for each target)
   {
     input: 'src/main.js',
-    // external: ['web3'],
+    external: ['web3'],
     output: [
       { file: pkg.main, format: 'cjs' },
       { file: pkg.module, format: 'es' }
     ],
     plugins: [
+      json(),
       babel({
-        exclude: ['node_modules/**']
+        runtimeHelpers: true,
+        exclude: ['node_modules/**'],
+        presets: [['@babel/env', { modules: false }]],
+        plugins: ['@babel/plugin-external-helpers', '@babel/plugin-transform-runtime'],
       })
     ]
   }

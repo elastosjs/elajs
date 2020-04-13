@@ -3,7 +3,7 @@ import bytesToTypes from './bytesToTypes'
 import typesToBytes from './typesToBytes'
 import { namehash } from './namehash'
 import { keccak256 } from './keccak256'
-import elajs from './elajs'
+import ELA_JS from './elajs'
 
 // @param hexStr does not expect to have a leading 0x prefix!
 const hexToBytes = (hexStr) => {
@@ -15,7 +15,7 @@ const bytes32ToHex = (input) => {
 }
 
 const exports = {
-  elajs,
+  ELA_JS,
 
   namehash,
   keccak256,

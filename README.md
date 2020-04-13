@@ -3,7 +3,9 @@
 
 This SDK allows you to interact with your ElastosJS Smart Contract Databases.
 
+## This is an ALPHA - Proof-of-Concept Version
 
+Expect significant changes between this and the official release.
 
 ### Semantics
 
