@@ -118,14 +118,36 @@ class ELA_JS {
       tableNameValue,
       tableKey,
       permission,
-      [],
-      []
+      cols,
+      colTypes
     ).send({
       from: this.defaultWeb3.eth.personal.currentProvider.addresses[0],
       gasPrice: this.config.gasPrice
     })
   }
 
+  async getTables(){
+    return await this.ephemeralInstance.methods.getTables().call()
+  }
+
+  async getTableMetadata(tableName){
+
+    const tableKey = namehash(tableName)
+
+    return await this.ephemeralInstance.methods.getTableMetadata(tableKey).call()
+  }
+
+  async getTableSchema(tableName){
+    const tableKey = namehash(tableName)
+
+    return await this.ephemeralInstance.methods.getSchema(tableKey).call()
+  }
+
+  async getTableIds(tableName){
+    const tableKey = namehash(tableName)
+
+    return await this.ephemeralInstance.methods.getTableIds(tableKey).call()
+  }
 
   /**
    * The storage smart contract does not support auto_increment ids, therefore we
@@ -225,8 +247,9 @@ class ELA_JS {
    * @param id - Should not have leading 0x
    * @param fieldName
    * @private
+   * @returns promise
    */
-  async _getVal(tableName, id, fieldName){
+  _getVal(tableName, id, fieldName){
 
     if (id.substring(0, 2) !== '0x' || id.length !== 66){
       throw new Error('id must be a 32 byte hex string prefixed with 0x')
@@ -237,7 +260,7 @@ class ELA_JS {
 
     const fieldIdTableKey = namehash(`${fieldName}.${id}.${tableName}`)
 
-    let result = await this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call()
+    let result = this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call()
 
     // TODO: type parsing? How to ensure this is fresh?
     // and so what if it isn't? We can't really change a field type right?
@@ -265,6 +288,10 @@ class ELA_JS {
 
   deleteRow(){
 
+  }
+
+  async getGSNBalance(){
+    return await this.ephemeralInstance.methods.getGSNBalance().call()
   }
 
   /*
