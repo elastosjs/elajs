@@ -8,6 +8,7 @@ import constants from './constants'
 import ELAJSStoreJSON from './contracts/ELAJSStore.json'
 
 /**
+ * TODO: consider making this a singleton?
  * - Must support ephemeral (anonymous calls)
  * - Needs to have a way to connect to Fortmatic
  * - Do we expect the parent app to pass in the ozWeb3 and fmWeb3?
@@ -69,6 +70,8 @@ class ELA_JS {
     this.config = {
       gasPrice: '1000000000'
     }
+
+    this.debug = true
   }
 
   /**
@@ -101,13 +104,15 @@ class ELA_JS {
     const tableNameValue = Web3.utils.stringToHex(tableName)
     const tableKey = namehash(tableName)
 
-    console.log(tableNameValue)
-    console.log(tableKey)
+    if (this.debug){
+      console.log('createTable', tableKey)
+      console.log(tableNameValue)
 
-    // this should only work locally, fortmatic would use a different path
-    console.log(this.defaultWeb3.eth.personal.currentProvider.addresses[0])
+      // this should only work locally, fortmatic would use a different path
+      console.log(this.defaultWeb3.eth.personal.currentProvider.addresses[0])
 
-    console.log(this.config.gasPrice)
+      console.log('gasPrice', this.config.gasPrice)
+    }
 
     await this.defaultInstance.methods.createTable(
       tableNameValue,
@@ -125,6 +130,8 @@ class ELA_JS {
   /**
    * The storage smart contract does not support auto_increment ids, therefore we
    * always generate randomBytes
+   *
+   * TODO: we really want to return a Promise immediately, which resolves to all the inserts
    *
    * There are 3 types of tables
    * 1 = private, must be FORTMATIC signer and only works if it's the owner
@@ -192,20 +199,29 @@ class ELA_JS {
    */
   async _getVal(tableName, id, fieldName){
 
+    if (id.substring(0, 2) !== '0x' || id.length !== 66){
+      throw new Error('id must be a 32 byte hex string prefixed with 0x')
+    }
+
+    // always strip the 0x
+    id = id.substring(2)
+
     const fieldIdTableKey = namehash(`${fieldName}.${id}.${tableName}`)
 
-    let result = await this.ozInstance.methods.getRowValue(fieldIdTableKey).call()
+    let result = await this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call()
 
     // TODO: type parsing? How to ensure this is fresh?
     // and so what if it isn't? We can't really change a field type right?
-    const fieldType = this.schema[tableKey][fieldKey].type
+    // const fieldType = this.schema[tableKey][fieldKey].type
 
+    /*
     switch (fieldType) {
 
       case constants.FIELD_TYPE.NUMBER:
         result = Web3.utils.hexToNumber(result)
         break
     }
+     */
 
     return result
   }
