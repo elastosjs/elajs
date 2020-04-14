@@ -8,7 +8,7 @@ import constants from './constants'
 import ELAJSStoreJSON from './contracts/ELAJSStore.json'
 
 /**
- * TODO: consider making this a singleton?
+ * TODO: consistent returns of promise
  * - Must support ephemeral (anonymous calls)
  * - Needs to have a way to connect to Fortmatic
  * - Do we expect the parent app to pass in the ozWeb3 and fmWeb3?
@@ -156,12 +156,8 @@ class ELA_JS {
     }
 
     const id = options.id || Web3.utils.randomHex(32)
-    const idKey = keccak256(id.substring(2))
 
-    const tableKey = namehash(tableName)
-    const idTableKey = namehash(`${id.substring(2)}.${tableName}`)
-
-    // check id
+    const {idKey, tableKey, idTableKey} = this._getKeys(tableName, id.substring(2))
 
     // TODO: check cache for table schema? Be lazy for now and always check?
 
@@ -185,8 +181,41 @@ class ELA_JS {
     }
   }
 
-  async _insertVal(tableKey, idTableKey, fieldIdTableKey){
+  /**
+   * Returns a promise
+   *
+   * TODO: the promise should resolve with the fieldIdTableKey and transaction hash
+   *
+   * @param tableName
+   * @param col
+   * @param val
+   * @param options
+   * @returns {*}
+   */
+  insertVal(tableName, col, val, options){
 
+    if (options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
+      throw new Error('options.id must be a 32 byte hex string prefixed with 0x')
+    }
+
+    const id = options.id || Web3.utils.randomHex(32)
+
+    const {idKey, tableKey, idTableKey} = this._getKeys(tableName, id.substring(2))
+    const fieldIdTableKey = namehash(`${col}.${id.substring(2)}.${tableName}`)
+    console.log(`fieldIdTableKey = ${fieldIdTableKey}`)
+    const fieldKey = keccak256(col)
+
+    return this.ephemeralInstance.methods.insertVal(
+      tableKey,
+      idTableKey,
+      fieldIdTableKey,
+      idKey,
+      fieldKey,
+      id,
+      val
+    ).send({
+      from: this.ephemeralWeb3.accounts[0]
+    })
   }
 
   /**
@@ -236,6 +265,24 @@ class ELA_JS {
 
   deleteRow(){
 
+  }
+
+  /*
+  ************************************************************************************************************
+  * Internal
+  ************************************************************************************************************
+   */
+  _getKeys(tableName, id){
+
+    if (id.substring(0, 2) === '0x'){
+      throw new Error('internal fn _getKeys expects id without 0x prefix')
+    }
+
+    const idKey = keccak256(id)
+    const tableKey = namehash(tableName)
+    const idTableKey = namehash(`${id}.${tableName}`)
+
+    return {idKey, tableKey, idTableKey}
   }
 
   /*

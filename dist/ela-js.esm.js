@@ -18806,7 +18806,7 @@ var ELAJSStoreJSON = {
 };
 
 /**
- * TODO: consider making this a singleton?
+ * TODO: consistent returns of promise
  * - Must support ephemeral (anonymous calls)
  * - Needs to have a way to connect to Fortmatic
  * - Do we expect the parent app to pass in the ozWeb3 and fmWeb3?
@@ -18950,7 +18950,8 @@ var ELA_JS = /*#__PURE__*/function () {
     key: "insertRow",
     value: function () {
       var _insertRow = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee2(tableName, cols, values, options) {
-        var id, idKey, tableKey, idTableKey, i, fieldIdTableKey, fieldKey;
+        var id, _this$_getKeys, idKey, tableKey, idTableKey, i, fieldIdTableKey, fieldKey;
+
         return _regeneratorRuntime.wrap(function _callee2$(_context2) {
           while (1) {
             switch (_context2.prev = _context2.next) {
@@ -18972,33 +18973,30 @@ var ELA_JS = /*#__PURE__*/function () {
 
               case 4:
                 id = options.id || Web3.utils.randomHex(32);
-                idKey = keccak256(id.substring(2));
-                tableKey = namehash(tableName);
-                idTableKey = namehash("".concat(id.substring(2), ".").concat(tableName)); // check id
-                // TODO: check cache for table schema? Be lazy for now and always check?
+                _this$_getKeys = this._getKeys(tableName, id.substring(2)), idKey = _this$_getKeys.idKey, tableKey = _this$_getKeys.tableKey, idTableKey = _this$_getKeys.idTableKey; // TODO: check cache for table schema? Be lazy for now and always check?
 
                 i = 0;
 
-              case 9:
+              case 7:
                 if (!(i < cols.length)) {
-                  _context2.next = 18;
+                  _context2.next = 16;
                   break;
                 }
 
                 fieldIdTableKey = namehash("".concat(cols[i], ".").concat(id.substring(2), ".").concat(tableName));
                 console.log("fieldIdTableKey = ".concat(fieldIdTableKey));
                 fieldKey = keccak256(cols[i]);
-                _context2.next = 15;
+                _context2.next = 13;
                 return this.ephemeralInstance.methods.insertVal(tableKey, idTableKey, fieldIdTableKey, idKey, fieldKey, id, values[i]).send({
                   from: this.ephemeralWeb3.accounts[0]
                 });
 
-              case 15:
+              case 13:
                 i++;
-                _context2.next = 9;
+                _context2.next = 7;
                 break;
 
-              case 18:
+              case 16:
               case "end":
                 return _context2.stop();
             }
@@ -19012,27 +19010,39 @@ var ELA_JS = /*#__PURE__*/function () {
 
       return insertRow;
     }()
-  }, {
-    key: "_insertVal",
-    value: function () {
-      var _insertVal2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee3(tableKey, idTableKey, fieldIdTableKey) {
-        return _regeneratorRuntime.wrap(function _callee3$(_context3) {
-          while (1) {
-            switch (_context3.prev = _context3.next) {
-              case 0:
-              case "end":
-                return _context3.stop();
-            }
-          }
-        }, _callee3);
-      }));
+    /**
+     * Returns a promise
+     *
+     * TODO: the promise should resolve with the fieldIdTableKey and transaction hash
+     *
+     * @param tableName
+     * @param col
+     * @param val
+     * @param options
+     * @returns {*}
+     */
 
-      function _insertVal(_x9, _x10, _x11) {
-        return _insertVal2.apply(this, arguments);
+  }, {
+    key: "insertVal",
+    value: function insertVal(tableName, col, val, options) {
+      if (options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)) {
+        throw new Error('options.id must be a 32 byte hex string prefixed with 0x');
       }
 
-      return _insertVal;
-    }()
+      var id = options.id || Web3.utils.randomHex(32);
+
+      var _this$_getKeys2 = this._getKeys(tableName, id.substring(2)),
+          idKey = _this$_getKeys2.idKey,
+          tableKey = _this$_getKeys2.tableKey,
+          idTableKey = _this$_getKeys2.idTableKey;
+
+      var fieldIdTableKey = namehash("".concat(col, ".").concat(id.substring(2), ".").concat(tableName));
+      console.log("fieldIdTableKey = ".concat(fieldIdTableKey));
+      var fieldKey = keccak256(col);
+      return this.ephemeralInstance.methods.insertVal(tableKey, idTableKey, fieldIdTableKey, idKey, fieldKey, id, val).send({
+        from: this.ephemeralWeb3.accounts[0]
+      });
+    }
     /**
      * This is a call so we can always use ephemeral
      *
@@ -19045,14 +19055,14 @@ var ELA_JS = /*#__PURE__*/function () {
   }, {
     key: "_getVal",
     value: function () {
-      var _getVal2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee4(tableName, id, fieldName) {
+      var _getVal2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee3(tableName, id, fieldName) {
         var fieldIdTableKey, result;
-        return _regeneratorRuntime.wrap(function _callee4$(_context4) {
+        return _regeneratorRuntime.wrap(function _callee3$(_context3) {
           while (1) {
-            switch (_context4.prev = _context4.next) {
+            switch (_context3.prev = _context3.next) {
               case 0:
                 if (!(id.substring(0, 2) !== '0x' || id.length !== 66)) {
-                  _context4.next = 2;
+                  _context3.next = 2;
                   break;
                 }
 
@@ -19062,22 +19072,22 @@ var ELA_JS = /*#__PURE__*/function () {
                 // always strip the 0x
                 id = id.substring(2);
                 fieldIdTableKey = namehash("".concat(fieldName, ".").concat(id, ".").concat(tableName));
-                _context4.next = 6;
+                _context3.next = 6;
                 return this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call();
 
               case 6:
-                result = _context4.sent;
-                return _context4.abrupt("return", result);
+                result = _context3.sent;
+                return _context3.abrupt("return", result);
 
               case 8:
               case "end":
-                return _context4.stop();
+                return _context3.stop();
             }
           }
-        }, _callee4, this);
+        }, _callee3, this);
       }));
 
-      function _getVal(_x12, _x13, _x14) {
+      function _getVal(_x9, _x10, _x11) {
         return _getVal2.apply(this, arguments);
       }
 
@@ -19094,6 +19104,28 @@ var ELA_JS = /*#__PURE__*/function () {
   }, {
     key: "deleteRow",
     value: function deleteRow() {}
+    /*
+    ************************************************************************************************************
+    * Internal
+    ************************************************************************************************************
+     */
+
+  }, {
+    key: "_getKeys",
+    value: function _getKeys(tableName, id) {
+      if (id.substring(0, 2) === '0x') {
+        throw new Error('internal fn _getKeys expects id without 0x prefix');
+      }
+
+      var idKey = keccak256(id);
+      var tableKey = namehash(tableName);
+      var idTableKey = namehash("".concat(id, ".").concat(tableName));
+      return {
+        idKey: idKey,
+        tableKey: tableKey,
+        idTableKey: idTableKey
+      };
+    }
     /*
      ******************************************************************************************************
      * Query Functions
