@@ -54,10 +54,10 @@ class ELA_JS {
     ************************************************************************************************************
      */
 
-    // default instance
+    // default instance - points to ElastosJS contract
     this.defaultInstance = null
 
-    // ephemeral instance
+    // ephemeral instance - points to ElastosJS contract
     this.ephemeralInstance = null
 
     this.ozWeb3 = null
@@ -65,13 +65,16 @@ class ELA_JS {
 
     this.schema = {}
 
-    this._initialize()
+    this.contractABI = ELAJSStoreJSON.abi
+    this.contractBytecode = ELAJSStoreJSON.bytecode
 
     this.config = {
       gasPrice: '1000000000'
     }
 
     this.debug = true
+
+    this._initialize()
   }
 
   /**
@@ -80,26 +83,63 @@ class ELA_JS {
    */
   _initialize(){
 
-
-    if (this.defaultWeb3){
-      this.defaultInstance = new this.defaultWeb3.eth.Contract(ELAJSStoreJSON.abi, this.contractAddress)
+    if (this.defaultWeb3 && this.contractAddress){
+      this.defaultInstance = new this.defaultWeb3.eth.Contract(this.contractABI, this.contractAddress)
     }
 
-    if (this.ephemeralWeb3){
+    if (this.ephemeralWeb3 && this.contractAddress){
       // the ozWeb3 is constructed slightly differently
-      this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(ELAJSStoreJSON.abi, this.contractAddress)
+      this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.contractABI, this.contractAddress)
     }
 
     // 1. fetch table list
     // 2. lazy fetch schema?
   }
 
-  setProvider(provider){
+  setDatabase(contractAddress){
+    this.contractAddress = contractAddress
+    this.defaultInstance = new this.defaultWeb3.eth.Contract(this.contractABI, contractAddress)
+    this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.contractABI, contractAddress)
+  }
 
+  deployDatabase(ethAddress){
+    const newContract = new this.defaultWeb3.eth.Contract(this.contractABI)
+
+    /*
+    let fromAccount
+
+    if (this.defaultWeb3.currentProvider &&
+      this.defaultWeb3.currentProvider.baseProvider &&
+      this.defaultWeb3.currentProvider.baseProvider.isFortmatic)
+    {
+      const ethAccounts = await this.defaultWeb3.eth.getAccounts()
+
+      fromAccount = ethAccounts[0]
+    } else {
+      fromAccount = this.defaultWeb3.eth.personal.currentProvider.addresses[0]
+    }
+     */
+
+    return newContract.deploy({
+      data: this.contractBytecode
+    }).send({
+      useGSN: false,
+      from: ethAddress,
+      gasPrice: this.config.gasPrice
+    })
+  }
+
+  initializeContract(ethAddress){
+    return this.defaultInstance.methods.initialize().send({
+      useGSN: false,
+      from: ethAddress,
+      gasPrice: this.config.gasPrice
+    })
   }
 
   // fm call only
-  async createTable(tableName, permission, cols, colTypes){
+  // we pass in ethAddress because we don't wait to wait for a fortmatic async fetch for ethAccounts
+  createTable(tableName, permission, cols, colTypes, ethAddress){
 
     const tableNameValue = Web3.utils.stringToHex(tableName)
     const tableKey = namehash(tableName)
@@ -114,14 +154,14 @@ class ELA_JS {
       console.log('gasPrice', this.config.gasPrice)
     }
 
-    await this.defaultInstance.methods.createTable(
+    return this.defaultInstance.methods.createTable(
       tableNameValue,
       tableKey,
       permission,
       cols,
       colTypes
     ).send({
-      from: this.defaultWeb3.eth.personal.currentProvider.addresses[0],
+      from: ethAddress || this.defaultWeb3.eth.personal.currentProvider.addresses[0],
       gasPrice: this.config.gasPrice
     })
   }
@@ -169,7 +209,7 @@ class ELA_JS {
    */
   async insertRow(tableName, cols, values, options){
 
-    if (options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
+    if (options && options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
       throw new Error('options.id must be a 32 byte hex string prefixed with 0x')
     }
 
@@ -177,9 +217,13 @@ class ELA_JS {
       throw new Error('cols, values arrays must be same length')
     }
 
-    const id = options.id || Web3.utils.randomHex(32)
+    let id = Web3.utils.randomHex(32)
 
-    const {idKey, tableKey, idTableKey} = this._getKeys(tableName, id.substring(2))
+    if (options && options.id){
+      id = options.id
+    }
+
+    const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
 
     // TODO: check cache for table schema? Be lazy for now and always check?
 
@@ -191,8 +235,6 @@ class ELA_JS {
 
       await this.ephemeralInstance.methods.insertVal(
         tableKey,
-        idTableKey,
-        fieldIdTableKey,
         idKey,
         fieldKey,
         id,
@@ -216,21 +258,23 @@ class ELA_JS {
    */
   insertVal(tableName, col, val, options){
 
-    if (options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
+    if (options && options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
       throw new Error('options.id must be a 32 byte hex string prefixed with 0x')
     }
 
-    const id = options.id || Web3.utils.randomHex(32)
+    let id = Web3.utils.randomHex(32)
 
-    const {idKey, tableKey, idTableKey} = this._getKeys(tableName, id.substring(2))
+    if (options && options.id){
+      id = options.id
+    }
+
+    const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
     const fieldIdTableKey = namehash(`${col}.${id.substring(2)}.${tableName}`)
     console.log(`fieldIdTableKey = ${fieldIdTableKey}`)
     const fieldKey = keccak256(col)
 
     return this.ephemeralInstance.methods.insertVal(
       tableKey,
-      idTableKey,
-      fieldIdTableKey,
       idKey,
       fieldKey,
       id,
