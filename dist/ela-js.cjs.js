@@ -21526,6 +21526,19 @@ var ELA_JS = /*#__PURE__*/function () {
         from: fromAddress
       });
     }
+    /**
+     *
+     * @param destAddress keep this the same as fromAddress, so user can only withdraw to their own address
+     */
+
+  }, {
+    key: "withdrawAll",
+    value: function withdrawAll(destAddress) {
+      return this.defaultInstance.methods.withdrawAll(destAddress).send({
+        useGSN: false,
+        from: destAddress
+      });
+    }
     /*
      ******************************************************************************************************
      * Query Functions

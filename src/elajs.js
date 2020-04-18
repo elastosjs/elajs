@@ -400,6 +400,17 @@ class ELA_JS {
 
   }
 
+  /**
+   *
+   * @param destAddress keep this the same as fromAddress, so user can only withdraw to their own address
+   */
+  withdrawAll(destAddress){
+    return this.defaultInstance.methods.withdrawAll(destAddress).send({
+      useGSN: false,
+      from: destAddress
+    })
+  }
+
   /*
    ******************************************************************************************************
    * Query Functions
