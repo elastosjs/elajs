@@ -3,7 +3,10 @@ import { keccak256 } from './keccak256'
 import { namehash } from './namehash'
 import Web3 from 'web3'
 
+import config from './config'
 import constants from './constants'
+
+import relayHubData from './relay-hub/data'
 
 import ELAJSStoreJSON from './contracts/ELAJSStore.json'
 
@@ -46,7 +49,7 @@ class ELA_JS {
     // this is the ephemeral signer for anonymous calls which don't prompt for a signature
     this.ephemeralWeb3 = options.ephemeralWeb3
 
-
+    this.network = options.network || constants.NETWORK.LOCAL
 
     /*
     ************************************************************************************************************
@@ -96,6 +99,15 @@ class ELA_JS {
     // 2. lazy fetch schema?
   }
 
+  /**
+   * It is very important that on additional/secondary ela-js instances that you call:
+   *
+   * await ethConfig.elajsUser.defaultWeb3.currentProvider.baseProvider.enable()
+   *
+   * This initializes the fortmatic web3 provider to sign transactions
+   *
+   * @param contractAddress
+   */
   setDatabase(contractAddress){
     this.contractAddress = contractAddress
     this.defaultInstance = new this.defaultWeb3.eth.Contract(this.contractABI, contractAddress)
@@ -130,6 +142,9 @@ class ELA_JS {
   }
 
   initializeContract(ethAddress){
+
+    console.log(ethAddress, this.defaultInstance)
+
     return this.defaultInstance.methods.initialize().send({
       useGSN: false,
       from: ethAddress,
@@ -354,6 +369,35 @@ class ELA_JS {
     const idTableKey = namehash(`${id}.${tableName}`)
 
     return {idKey, tableKey, idTableKey}
+  }
+
+  /*
+  ************************************************************************************************************
+  * Relay Hub
+  ************************************************************************************************************
+   */
+
+  /**
+   * @param fromAddress ethAddress to send funds from, should correspond to the defaultWeb3 instance
+   * @param contractAddress
+   * @param amount to add in Ether
+   */
+  addFunds(fromAddress, contractAddress, amount){
+
+    const relayHubAddress = config[this.network].relayHubAddress
+
+    const relayHubInstance = new this.defaultWeb3.eth.Contract(relayHubData.abi, relayHubAddress, {
+      data: relayHubData.bytecode
+    })
+
+    const amtInWei = new Web3.utils.BN(Web3.utils.toWei(amount, 'ether'))
+
+    return relayHubInstance.methods.depositFor(contractAddress).send({
+      useGSN: false,
+      value: amtInWei,
+      from: fromAddress
+    })
+
   }
 
   /*
