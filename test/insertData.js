@@ -22,6 +22,8 @@ describe('Tests for Insert Data', () => {
   const TEST_COLS = TEST_COLS_RAW.map((colName) => Web3.utils.stringToHex(colName))
   const TEST_COL_TYPES = ['STRING', 'UINT', 'BYTES32'].map((colName) => Web3.utils.stringToHex(colName))
 
+  let rowId, randomBytes
+
   before(async () => {
 
     ozWeb3 = await fromConnection(process.env.PROVIDER_URL, {
@@ -48,7 +50,7 @@ describe('Tests for Insert Data', () => {
 
   it('Should insert a row of data', async () => {
 
-    const randomBytes = Web3.utils.randomHex(32)
+    randomBytes = Web3.utils.randomHex(32)
 
     const vals = [
       Web3.utils.stringToHex('John'),
@@ -56,7 +58,11 @@ describe('Tests for Insert Data', () => {
       randomBytes
     ]
 
-    const rowId = await elajs.insertRow(TEST_TABLE, TEST_COLS_RAW, vals) //, {ethAddress: web3.eth.personal.currentProvider.addresses[0]})
+    rowId = await elajs.insertRow(TEST_TABLE, TEST_COLS_RAW, vals) //, {ethAddress: web3.eth.personal.currentProvider.addresses[0]})
+
+  })
+
+  it('Should check the row of data', async () => {
 
     const rowData = await elajs.getRow(TEST_TABLE, rowId)
 

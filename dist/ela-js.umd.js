@@ -38758,8 +38758,8 @@
   		},
   		events: {
   		},
-  		address: "0x18c07E395Df250003f439F6e8ea1Ea8Aa51752c6",
-  		updated_at: 1587698124186
+  		address: "0x041Ce3598527F8eD4b28AE42496f844ddF0f9a70",
+  		updated_at: 1587699552003
   	}
   };
   var ELAJSStoreJSON = {
@@ -38892,78 +38892,59 @@
     }, {
       key: "getRow",
       value: function () {
-        var _getRow = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee2(tableName, id) {
-          var tableKey, tableSchema, colsResult, i, len, colData, fieldName, fieldType, val;
-          return regenerator.wrap(function _callee2$(_context2) {
+        var _getRow = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee3(tableName, id) {
+          var _this = this;
+
+          var tableKey, tableSchema, colsPromises;
+          return regenerator.wrap(function _callee3$(_context3) {
             while (1) {
-              switch (_context2.prev = _context2.next) {
+              switch (_context3.prev = _context3.next) {
                 case 0:
                   tableKey = namehash(tableName);
-                  _context2.next = 3;
+                  _context3.next = 3;
                   return this.ephemeralInstance.methods.getSchema(tableKey).call();
 
                 case 3:
-                  tableSchema = _context2.sent;
-                  colsResult = [];
-                  i = 0, len = tableSchema.columns.length;
+                  tableSchema = _context3.sent;
+                  colsPromises = tableSchema.columns.map(function (colData) {
+                    var fieldName = Web3.utils.hexToString(colData.name);
+                    var fieldType = Web3.utils.hexToString(colData._dtype);
+                    console.log('1');
+                    return asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee2() {
+                      var val;
+                      return regenerator.wrap(function _callee2$(_context2) {
+                        while (1) {
+                          switch (_context2.prev = _context2.next) {
+                            case 0:
+                              _context2.next = 2;
+                              return _this.getVal(tableName, id, fieldName, fieldType);
 
-                case 6:
-                  if (!(i < len)) {
-                    _context2.next = 27;
-                    break;
-                  }
+                            case 2:
+                              val = _context2.sent;
+                              console.log('2');
+                              return _context2.abrupt("return", {
+                                name: fieldName,
+                                type: Web3.utils.hexToString(colData._dtype),
+                                value: val
+                              });
 
-                  colData = tableSchema.columns[i];
-                  fieldName = Web3.utils.hexToString(colData.name);
-                  fieldType = Web3.utils.hexToString(colData._dtype);
-                  _context2.next = 12;
-                  return this._getVal(tableName, id, fieldName);
-
-                case 12:
-                  val = _context2.sent;
-
-                  if (!fieldType) {
-                    _context2.next = 23;
-                    break;
-                  }
-
-                  _context2.t0 = fieldType;
-                  _context2.next = _context2.t0 === constants.FIELD_TYPE.UINT ? 17 : _context2.t0 === constants.FIELD_TYPE.STRING ? 19 : _context2.t0 === constants.FIELD_TYPE.BOOL ? 21 : 23;
-                  break;
-
-                case 17:
-                  val = Web3.utils.hexToNumber(val);
-                  return _context2.abrupt("break", 23);
-
-                case 19:
-                  val = Web3.utils.hexToString(val);
-                  return _context2.abrupt("break", 23);
-
-                case 21:
-                  val = !!Web3.utils.hexToNumber(val);
-                  return _context2.abrupt("break", 23);
-
-                case 23:
-                  colsResult.push({
-                    name: fieldName,
-                    type: Web3.utils.hexToString(colData._dtype),
-                    value: val
+                            case 5:
+                            case "end":
+                              return _context2.stop();
+                          }
+                        }
+                      }, _callee2);
+                    }))();
                   });
+                  console.log('3');
+                  return _context3.abrupt("return", Promise.all(colsPromises));
 
-                case 24:
-                  i++;
-                  _context2.next = 6;
-                  break;
-
-                case 27:
-                  return _context2.abrupt("return", colsResult);
-
-                case 28:
+                case 7:
                 case "end":
-                  return _context2.stop();
+                  return _context3.stop();
               }
             }
-          }, _callee2, this);
+          }, _callee3, this);
         }));
 
         function getRow(_x, _x2) {
@@ -38997,18 +38978,18 @@
     }, {
       key: "insertRow",
       value: function () {
-        var _insertRow = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee3(tableName, cols, values, options) {
+        var _insertRow = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee4(tableName, cols, values, options) {
           var _defaultOptions, id, _this$_getKeys, idKey, tableKey, instance, ethAddress, i, fieldIdTableKey, fieldKey;
 
-          return regenerator.wrap(function _callee3$(_context3) {
+          return regenerator.wrap(function _callee4$(_context4) {
             while (1) {
-              switch (_context3.prev = _context3.next) {
+              switch (_context4.prev = _context4.next) {
                 case 0:
                   _defaultOptions = {};
                   options = Object.assign(_defaultOptions, options);
 
                   if (!(options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66))) {
-                    _context3.next = 4;
+                    _context4.next = 4;
                     break;
                   }
 
@@ -39016,7 +38997,7 @@
 
                 case 4:
                   if (!(cols.length !== values.length)) {
-                    _context3.next = 6;
+                    _context4.next = 6;
                     break;
                   }
 
@@ -39043,7 +39024,7 @@
 
                 case 11:
                   if (!(i < cols.length)) {
-                    _context3.next = 20;
+                    _context4.next = 20;
                     break;
                   }
 
@@ -39060,25 +39041,25 @@
                   )
                    */
 
-                  _context3.next = 17;
+                  _context4.next = 17;
                   return instance.methods.insertVal(tableKey, idKey, fieldKey, id, values[i]).send({
                     from: ethAddress
                   });
 
                 case 17:
                   i++;
-                  _context3.next = 11;
+                  _context4.next = 11;
                   break;
 
                 case 20:
-                  return _context3.abrupt("return", id);
+                  return _context4.abrupt("return", id);
 
                 case 21:
                 case "end":
-                  return _context3.stop();
+                  return _context4.stop();
               }
             }
-          }, _callee3, this);
+          }, _callee4, this);
         }));
 
         function insertRow(_x3, _x4, _x5, _x6) {
@@ -39125,7 +39106,72 @@
       }
     }, {
       key: "deleteRow",
-      value: function deleteRow() {}
+      value: function deleteRow() {} // like _getVal but async and uses fieldType
+
+    }, {
+      key: "getVal",
+      value: function () {
+        var _getVal2 = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee5(tableName, id, fieldName, fieldType) {
+          var fieldIdTableKey, val;
+          return regenerator.wrap(function _callee5$(_context5) {
+            while (1) {
+              switch (_context5.prev = _context5.next) {
+                case 0:
+                  if (!(id.substring(0, 2) !== '0x' || id.length !== 66)) {
+                    _context5.next = 2;
+                    break;
+                  }
+
+                  throw new Error('id must be a 32 byte hex string prefixed with 0x');
+
+                case 2:
+                  // always strip the 0x
+                  id = id.substring(2);
+                  fieldIdTableKey = namehash("".concat(fieldName, ".").concat(id, ".").concat(tableName));
+                  _context5.next = 6;
+                  return this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call();
+
+                case 6:
+                  val = _context5.sent;
+
+                  if (!fieldType) {
+                    _context5.next = 17;
+                    break;
+                  }
+
+                  _context5.t0 = fieldType;
+                  _context5.next = _context5.t0 === constants.FIELD_TYPE.UINT ? 11 : _context5.t0 === constants.FIELD_TYPE.STRING ? 13 : _context5.t0 === constants.FIELD_TYPE.BOOL ? 15 : 17;
+                  break;
+
+                case 11:
+                  val = Web3.utils.hexToNumber(val);
+                  return _context5.abrupt("break", 17);
+
+                case 13:
+                  val = Web3.utils.hexToString(val);
+                  return _context5.abrupt("break", 17);
+
+                case 15:
+                  val = !!Web3.utils.hexToNumber(val);
+                  return _context5.abrupt("break", 17);
+
+                case 17:
+                  return _context5.abrupt("return", val);
+
+                case 18:
+                case "end":
+                  return _context5.stop();
+              }
+            }
+          }, _callee5, this);
+        }));
+
+        function getVal(_x7, _x8, _x9, _x10) {
+          return _getVal2.apply(this, arguments);
+        }
+
+        return getVal;
+      }()
       /*
       ************************************************************************************************************
       * Helpers - should not be called externally
@@ -39168,7 +39214,7 @@
 
     }, {
       key: "_getVal",
-      value: function _getVal(tableName, id, fieldName, fieldType) {
+      value: function _getVal(tableName, id, fieldName) {
         if (id.substring(0, 2) !== '0x' || id.length !== 66) {
           throw new Error('id must be a 32 byte hex string prefixed with 0x');
         } // always strip the 0x
@@ -39208,23 +39254,23 @@
     }, {
       key: "getGSNBalance",
       value: function () {
-        var _getGSNBalance = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee4() {
-          return regenerator.wrap(function _callee4$(_context4) {
+        var _getGSNBalance = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee6() {
+          return regenerator.wrap(function _callee6$(_context6) {
             while (1) {
-              switch (_context4.prev = _context4.next) {
+              switch (_context6.prev = _context6.next) {
                 case 0:
-                  _context4.next = 2;
+                  _context6.next = 2;
                   return this.ephemeralInstance.methods.getGSNBalance().call();
 
                 case 2:
-                  return _context4.abrupt("return", _context4.sent);
+                  return _context6.abrupt("return", _context6.sent);
 
                 case 3:
                 case "end":
-                  return _context4.stop();
+                  return _context6.stop();
               }
             }
-          }, _callee4, this);
+          }, _callee6, this);
         }));
 
         function getGSNBalance() {
@@ -39377,67 +39423,7 @@
     }, {
       key: "getTableMetadata",
       value: function () {
-        var _getTableMetadata = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee5(tableName) {
-          var tableKey;
-          return regenerator.wrap(function _callee5$(_context5) {
-            while (1) {
-              switch (_context5.prev = _context5.next) {
-                case 0:
-                  tableKey = namehash(tableName);
-                  _context5.next = 3;
-                  return this.ephemeralInstance.methods.getTableMetadata(tableKey).call();
-
-                case 3:
-                  return _context5.abrupt("return", _context5.sent);
-
-                case 4:
-                case "end":
-                  return _context5.stop();
-              }
-            }
-          }, _callee5, this);
-        }));
-
-        function getTableMetadata(_x7) {
-          return _getTableMetadata.apply(this, arguments);
-        }
-
-        return getTableMetadata;
-      }()
-    }, {
-      key: "getTableSchema",
-      value: function () {
-        var _getTableSchema = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee6(tableName) {
-          var tableKey;
-          return regenerator.wrap(function _callee6$(_context6) {
-            while (1) {
-              switch (_context6.prev = _context6.next) {
-                case 0:
-                  tableKey = namehash(tableName);
-                  _context6.next = 3;
-                  return this.ephemeralInstance.methods.getSchema(tableKey).call();
-
-                case 3:
-                  return _context6.abrupt("return", _context6.sent);
-
-                case 4:
-                case "end":
-                  return _context6.stop();
-              }
-            }
-          }, _callee6, this);
-        }));
-
-        function getTableSchema(_x8) {
-          return _getTableSchema.apply(this, arguments);
-        }
-
-        return getTableSchema;
-      }()
-    }, {
-      key: "getTableIds",
-      value: function () {
-        var _getTableIds = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee7(tableName) {
+        var _getTableMetadata = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee7(tableName) {
           var tableKey;
           return regenerator.wrap(function _callee7$(_context7) {
             while (1) {
@@ -39445,7 +39431,7 @@
                 case 0:
                   tableKey = namehash(tableName);
                   _context7.next = 3;
-                  return this.ephemeralInstance.methods.getTableIds(tableKey).call();
+                  return this.ephemeralInstance.methods.getTableMetadata(tableKey).call();
 
                 case 3:
                   return _context7.abrupt("return", _context7.sent);
@@ -39458,7 +39444,67 @@
           }, _callee7, this);
         }));
 
-        function getTableIds(_x9) {
+        function getTableMetadata(_x11) {
+          return _getTableMetadata.apply(this, arguments);
+        }
+
+        return getTableMetadata;
+      }()
+    }, {
+      key: "getTableSchema",
+      value: function () {
+        var _getTableSchema = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee8(tableName) {
+          var tableKey;
+          return regenerator.wrap(function _callee8$(_context8) {
+            while (1) {
+              switch (_context8.prev = _context8.next) {
+                case 0:
+                  tableKey = namehash(tableName);
+                  _context8.next = 3;
+                  return this.ephemeralInstance.methods.getSchema(tableKey).call();
+
+                case 3:
+                  return _context8.abrupt("return", _context8.sent);
+
+                case 4:
+                case "end":
+                  return _context8.stop();
+              }
+            }
+          }, _callee8, this);
+        }));
+
+        function getTableSchema(_x12) {
+          return _getTableSchema.apply(this, arguments);
+        }
+
+        return getTableSchema;
+      }()
+    }, {
+      key: "getTableIds",
+      value: function () {
+        var _getTableIds = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee9(tableName) {
+          var tableKey;
+          return regenerator.wrap(function _callee9$(_context9) {
+            while (1) {
+              switch (_context9.prev = _context9.next) {
+                case 0:
+                  tableKey = namehash(tableName);
+                  _context9.next = 3;
+                  return this.ephemeralInstance.methods.getTableIds(tableKey).call();
+
+                case 3:
+                  return _context9.abrupt("return", _context9.sent);
+
+                case 4:
+                case "end":
+                  return _context9.stop();
+              }
+            }
+          }, _callee9, this);
+        }));
+
+        function getTableIds(_x13) {
           return _getTableIds.apply(this, arguments);
         }
 

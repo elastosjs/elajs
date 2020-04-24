@@ -114,40 +114,23 @@ class ELA_JS {
 
     const tableSchema = await this.ephemeralInstance.methods.getSchema(tableKey).call()
 
-    const colsResult = []
+    const colsPromises = tableSchema.columns.map((colData) => {
 
-    for (let i = 0, len = tableSchema.columns.length; i < len; i++){
-      const colData = tableSchema.columns[i]
       const fieldName = Web3.utils.hexToString(colData.name)
       const fieldType = Web3.utils.hexToString(colData._dtype)
-      let val = await this._getVal(tableName, id, fieldName)
 
-      if (fieldType){
-        switch (fieldType){
+      return (async () => {
+        let val = await this.getVal(tableName, id, fieldName, fieldType)
 
-          case constants.FIELD_TYPE.UINT:
-            val = Web3.utils.hexToNumber(val)
-            break
-
-          case constants.FIELD_TYPE.STRING:
-            val = Web3.utils.hexToString(val)
-            break
-
-          case constants.FIELD_TYPE.BOOL:
-            val = !!Web3.utils.hexToNumber(val)
-            break
+        return {
+          name: fieldName,
+          type: Web3.utils.hexToString(colData._dtype),
+          value: val
         }
-      }
+      })()
+    })
 
-      colsResult.push({
-        name: fieldName,
-        type: Web3.utils.hexToString(colData._dtype),
-        value: val
-      })
-    }
-
-    return colsResult
-
+    return Promise.all(colsPromises)
   }
 
   /**
@@ -277,6 +260,45 @@ class ELA_JS {
 
   }
 
+  // like _getVal but async and uses fieldType
+  async getVal(tableName, id, fieldName, fieldType){
+
+    if (id.substring(0, 2) !== '0x' || id.length !== 66){
+      throw new Error('id must be a 32 byte hex string prefixed with 0x')
+    }
+
+    // always strip the 0x
+    id = id.substring(2)
+
+    const fieldIdTableKey = namehash(`${fieldName}.${id}.${tableName}`)
+
+    let val = await this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call()
+
+    // TODO: type parsing? Can't if we return a promise, how to ensure this is fresh?
+    // and so what if it isn't? We can't really change a field type right?
+    // const fieldType = this.schema[tableKey][fieldKey].type
+    if (fieldType){
+      switch (fieldType){
+
+        case constants.FIELD_TYPE.UINT:
+          val = Web3.utils.hexToNumber(val)
+          break
+
+        case constants.FIELD_TYPE.STRING:
+          val = Web3.utils.hexToString(val)
+          break
+
+        case constants.FIELD_TYPE.BOOL:
+          val = !!Web3.utils.hexToNumber(val)
+          break
+      }
+    }
+
+    return val
+  }
+
+
+
   /*
   ************************************************************************************************************
   * Helpers - should not be called externally
@@ -312,7 +334,7 @@ class ELA_JS {
    * @private
    * @returns promise
    */
-  _getVal(tableName, id, fieldName, fieldType){
+  _getVal(tableName, id, fieldName){
 
     if (id.substring(0, 2) !== '0x' || id.length !== 66){
       throw new Error('id must be a 32 byte hex string prefixed with 0x')
