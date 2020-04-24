@@ -11,8 +11,10 @@ const constants = {
   },
 
   FIELD_TYPE: {
+    BYTES32: 'BYTES32',
     STRING: 'STRING',
-    NUMBER: 'NUMBER'
+    BOOL: 'BOOL',
+    UINT: 'UINT'
   }
 }
 

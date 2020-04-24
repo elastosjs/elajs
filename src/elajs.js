@@ -11,10 +11,12 @@ import relayHubData from './relay-hub/data'
 import ELAJSStoreJSON from './contracts/ELAJSStore.json'
 
 /**
+ * Under Development
+ *
  * TODO: consistent returns of promise
  * - Must support ephemeral (anonymous calls)
  * - Needs to have a way to connect to Fortmatic
- * - Do we expect the parent app to pass in the ozWeb3 and fmWeb3?
+ * - We always expect the parent app to pass in the ozWeb3 and fmWeb3?
  * - do we track state and an entire table schema? cached?
  * - web3 should definitely be external, we pass it in and instantiate the contract
  */
@@ -25,8 +27,6 @@ class ELA_JS {
    * @param options
    */
   constructor(options){
-
-    console.log('constructor')
 
     /*
     ************************************************************************************************************
@@ -75,138 +75,86 @@ class ELA_JS {
       gasPrice: '1000000000'
     }
 
-    this.debug = true
+    this.debug = options.debug || false
+
+    // TODO: we want to cache or use a Map, how to handle invalidating cache
+    this.cache = {}
 
     this._initialize()
   }
 
-  /**
-   * We should setup the web3 components if not passed in
-   * @private
+
+  /*
+   ******************************************************************************************************
+   * Query Functions
+   ******************************************************************************************************
    */
-  _initialize(){
-
-    if (this.defaultWeb3 && this.contractAddress){
-      this.defaultInstance = new this.defaultWeb3.eth.Contract(this.contractABI, this.contractAddress)
-    }
-
-    if (this.ephemeralWeb3 && this.contractAddress){
-      // the ozWeb3 is constructed slightly differently
-      this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.contractABI, this.contractAddress)
-    }
-
-    // 1. fetch table list
-    // 2. lazy fetch schema?
-  }
-
-  /**
-   * It is very important that on additional/secondary ela-js instances that you call:
-   *
-   * await ethConfig.elajsUser.defaultWeb3.currentProvider.baseProvider.enable()
-   *
-   * This initializes the fortmatic web3 provider to sign transactions
-   *
-   * @param contractAddress
-   */
-  setDatabase(contractAddress){
-    this.contractAddress = contractAddress
-    this.defaultInstance = new this.defaultWeb3.eth.Contract(this.contractABI, contractAddress)
-    this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.contractABI, contractAddress)
-  }
-
-  deployDatabase(ethAddress){
-    const newContract = new this.defaultWeb3.eth.Contract(this.contractABI)
-
-    /*
-    let fromAccount
-
-    if (this.defaultWeb3.currentProvider &&
-      this.defaultWeb3.currentProvider.baseProvider &&
-      this.defaultWeb3.currentProvider.baseProvider.isFortmatic)
-    {
-      const ethAccounts = await this.defaultWeb3.eth.getAccounts()
-
-      fromAccount = ethAccounts[0]
-    } else {
-      fromAccount = this.defaultWeb3.eth.personal.currentProvider.addresses[0]
-    }
-     */
-
-    return newContract.deploy({
-      data: this.contractBytecode
-    }).send({
-      useGSN: false,
-      from: ethAddress,
-      gasPrice: this.config.gasPrice
-    })
-  }
-
-  initializeContract(ethAddress){
-
-    console.log(ethAddress, this.defaultInstance)
-
-    return this.defaultInstance.methods.initialize().send({
-      useGSN: false,
-      from: ethAddress,
-      gasPrice: this.config.gasPrice
-    })
-  }
-
-  // fm call only
-  // we pass in ethAddress because we don't wait to wait for a fortmatic async fetch for ethAccounts
-  createTable(tableName, permission, cols, colTypes, ethAddress){
-
-    const tableNameValue = Web3.utils.stringToHex(tableName)
-    const tableKey = namehash(tableName)
-
-    if (this.debug){
-      console.log('createTable', tableKey)
-      console.log(tableNameValue)
-
-      // this should only work locally, fortmatic would use a different path
-      console.log(this.defaultWeb3.eth.personal.currentProvider.addresses[0])
-
-      console.log('gasPrice', this.config.gasPrice)
-    }
-
-    return this.defaultInstance.methods.createTable(
-      tableNameValue,
-      tableKey,
-      permission,
-      cols,
-      colTypes
-    ).send({
-      from: ethAddress || this.defaultWeb3.eth.personal.currentProvider.addresses[0],
-      gasPrice: this.config.gasPrice
-    })
-  }
-
   async getTables(){
     return await this.ephemeralInstance.methods.getTables().call()
   }
 
-  async getTableMetadata(tableName){
+  /**
+   * Returns a chainable select object, that finally resolves to a callable Promise
+   */
+  select(){
 
-    const tableKey = namehash(tableName)
+    // return this? - need to instantiate and return a new Class instance for chaining
 
-    return await this.ephemeralInstance.methods.getTableMetadata(tableKey).call()
+    // pass a reference to elajs into the constructor?
   }
 
-  async getTableSchema(tableName){
+  /**
+   * @param tableName
+   * @param id
+   * @returns {Promise<void>}
+   */
+  async getRow(tableName, id){
+
     const tableKey = namehash(tableName)
 
-    return await this.ephemeralInstance.methods.getSchema(tableKey).call()
-  }
+    const tableSchema = await this.ephemeralInstance.methods.getSchema(tableKey).call()
 
-  async getTableIds(tableName){
-    const tableKey = namehash(tableName)
+    const colsResult = []
 
-    return await this.ephemeralInstance.methods.getTableIds(tableKey).call()
+    for (let i = 0, len = tableSchema.columns.length; i < len; i++){
+      const colData = tableSchema.columns[i]
+      const fieldName = Web3.utils.hexToString(colData.name)
+      const fieldType = Web3.utils.hexToString(colData._dtype)
+      let val = await this._getVal(tableName, id, fieldName)
+
+      if (fieldType){
+        switch (fieldType){
+
+          case constants.FIELD_TYPE.UINT:
+            val = Web3.utils.hexToNumber(val)
+            break
+
+          case constants.FIELD_TYPE.STRING:
+            val = Web3.utils.hexToString(val)
+            break
+
+          case constants.FIELD_TYPE.BOOL:
+            val = !!Web3.utils.hexToNumber(val)
+            break
+        }
+      }
+
+      colsResult.push({
+        name: fieldName,
+        type: Web3.utils.hexToString(colData._dtype),
+        value: val
+      })
+    }
+
+    return colsResult
+
   }
 
   /**
    * The storage smart contract does not support auto_increment ids, therefore we
    * always generate randomBytes
+   *
+   * EPHEMERAL ONLY - TODO add ethAddress!
    *
    * TODO: we really want to return a Promise immediately, which resolves to all the inserts
    *
@@ -217,14 +165,19 @@ class ELA_JS {
    *
    * @param tableName
    * @param cols Array of column names, name must be 32 chars or less
-   * @param colTypes Array of column types
-   * @param values For now we just require byte32 values
+   * @param values - TODO: get the schema (cached) if possible to do the conversion here
    * @param options - struct
-   * @param options.signer -
+   * @param options.signer
+   *
+   * @return the bytes32 id for the row
    */
   async insertRow(tableName, cols, values, options){
 
-    if (options && options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
+    const _defaultOptions = {}
+
+    options = Object.assign(_defaultOptions, options)
+
+    if (options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
       throw new Error('options.id must be a 32 byte hex string prefixed with 0x')
     }
 
@@ -234,7 +187,7 @@ class ELA_JS {
 
     let id = Web3.utils.randomHex(32)
 
-    if (options && options.id){
+    if (options.id){
       id = options.id
     }
 
@@ -242,26 +195,47 @@ class ELA_JS {
 
     // TODO: check cache for table schema? Be lazy for now and always check?
 
+    let instance, ethAddress
+    if (options.ethAddress){
+      instance = this.defaultInstance
+      ethAddress = options.ethAddress
+    } else {
+      instance = this.ephemeralInstance
+      ethAddress = this.ephemeralWeb3.accounts[0]
+    }
+
     for (let i = 0; i < cols.length; i++){
 
       let fieldIdTableKey = namehash(`${cols[i]}.${id.substring(2)}.${tableName}`)
-      console.log(`fieldIdTableKey = ${fieldIdTableKey}`)
+      this.debug && console.log(`fieldIdTableKey = ${fieldIdTableKey}`)
       let fieldKey = keccak256(cols[i])
 
-      await this.ephemeralInstance.methods.insertVal(
+      /*
+      console.log(tableKey,
+        idKey,
+        fieldKey,
+        id,
+        values[i],
+        ethAddress
+      )
+       */
+
+      await instance.methods.insertVal(
         tableKey,
         idKey,
         fieldKey,
         id,
         values[i]
       ).send({
-        from: this.ephemeralWeb3.accounts[0]
+        from: ethAddress
       })
     }
+
+    return id
   }
 
   /**
-   * Returns a promise
+   * Non-async - returns a promise so you have more granular control over progress display on the client
    *
    * TODO: the promise should resolve with the fieldIdTableKey and transaction hash
    *
@@ -299,63 +273,13 @@ class ELA_JS {
     })
   }
 
-  /**
-   * This is a call so we can always use ephemeral
-   *
-   * @param tableName
-   * @param id - Should not have leading 0x
-   * @param fieldName
-   * @private
-   * @returns promise
-   */
-  _getVal(tableName, id, fieldName){
-
-    if (id.substring(0, 2) !== '0x' || id.length !== 66){
-      throw new Error('id must be a 32 byte hex string prefixed with 0x')
-    }
-
-    // always strip the 0x
-    id = id.substring(2)
-
-    const fieldIdTableKey = namehash(`${fieldName}.${id}.${tableName}`)
-
-    let result = this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call()
-
-    // TODO: type parsing? How to ensure this is fresh?
-    // and so what if it isn't? We can't really change a field type right?
-    // const fieldType = this.schema[tableKey][fieldKey].type
-
-    /*
-    switch (fieldType) {
-
-      case constants.FIELD_TYPE.NUMBER:
-        result = Web3.utils.hexToNumber(result)
-        break
-    }
-     */
-
-    return result
-  }
-
-  /**
-   * Update a single val, should be called by another fn
-   * @private
-   */
-  _updateVal(){
-
-  }
-
   deleteRow(){
 
   }
 
-  async getGSNBalance(){
-    return await this.ephemeralInstance.methods.getGSNBalance().call()
-  }
-
   /*
   ************************************************************************************************************
-  * Internal
+  * Helpers - should not be called externally
   ************************************************************************************************************
    */
   _getKeys(tableName, id){
@@ -371,11 +295,70 @@ class ELA_JS {
     return {idKey, tableKey, idTableKey}
   }
 
+  /**
+   * Update a single val, should be called by another fn
+   * @private
+   */
+  _updateVal(){
+
+  }
+
+  /**
+   * This is a call so we can always use ephemeral, has no type handling since this returns a promise
+   *
+   * @param tableName
+   * @param id - Should not have leading 0x
+   * @param fieldName
+   * @private
+   * @returns promise
+   */
+  _getVal(tableName, id, fieldName, fieldType){
+
+    if (id.substring(0, 2) !== '0x' || id.length !== 66){
+      throw new Error('id must be a 32 byte hex string prefixed with 0x')
+    }
+
+    // always strip the 0x
+    id = id.substring(2)
+
+    const fieldIdTableKey = namehash(`${fieldName}.${id}.${tableName}`)
+
+    return this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call()
+
+    // TODO: type parsing? Can't if we return a promise, how to ensure this is fresh?
+    // and so what if it isn't? We can't really change a field type right?
+    // const fieldType = this.schema[tableKey][fieldKey].type
+
+  }
+
+  /**
+   * We should setup the web3 components if not passed in
+   * @private
+   */
+  _initialize(){
+
+    if (this.defaultWeb3 && this.contractAddress){
+      this.defaultInstance = new this.defaultWeb3.eth.Contract(this.contractABI, this.contractAddress)
+    }
+
+    if (this.ephemeralWeb3 && this.contractAddress){
+      // the ozWeb3 is constructed slightly differently
+      this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.contractABI, this.contractAddress)
+    }
+
+    // 1. fetch table list
+    // 2. lazy fetch schema?
+  }
+
+
   /*
   ************************************************************************************************************
   * Relay Hub
   ************************************************************************************************************
    */
+  async getGSNBalance(){
+    return await this.ephemeralInstance.methods.getGSNBalance().call()
+  }
 
   /**
    * @param fromAddress ethAddress to send funds from, should correspond to the defaultWeb3 instance
@@ -411,21 +394,142 @@ class ELA_JS {
     })
   }
 
+
   /*
-   ******************************************************************************************************
-   * Query Functions
-   ******************************************************************************************************
+  ************************************************************************************************************
+  * Administrative - Changing Contracts, Deploying/Initializing
+  ************************************************************************************************************
    */
 
   /**
-   * Returns a chainable select object, that finally resolves to a callable Promise
+   * It is very important that on additional/secondary ela-js instances that you call:
+   *
+   * await ethConfig.elajsUser.defaultWeb3.currentProvider.baseProvider.enable()
+   *
+   * This initializes the fortmatic web3 provider to sign transactions
+   *
+   * TODO: we should possibly check if defaultInstance is formatic or Metamask at least (least not ephemeral)
+   *
+   * @param contractAddress
    */
-  select(){
-
-    // return this? - need to instantiate and return a new Class instance for chaining
-
-    // pass a reference to elajs into the constructor?
+  setDatabase(contractAddress){
+    this.contractAddress = contractAddress
+    this.defaultInstance = new this.defaultWeb3.eth.Contract(this.contractABI, contractAddress)
+    this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.contractABI, contractAddress)
   }
+
+  /**
+   * TODO: revisit if we should be passing ethAddress, this is all client-side anyway though
+   * @param ethAddress
+   */
+  deployDatabase(ethAddress){
+    const newContract = new this.defaultWeb3.eth.Contract(this.contractABI)
+
+    /*
+    let fromAccount
+
+    if (this.defaultWeb3.currentProvider &&
+      this.defaultWeb3.currentProvider.baseProvider &&
+      this.defaultWeb3.currentProvider.baseProvider.isFortmatic)
+    {
+      const ethAccounts = await this.defaultWeb3.eth.getAccounts()
+
+      fromAccount = ethAccounts[0]
+    } else {
+      fromAccount = this.defaultWeb3.eth.personal.currentProvider.addresses[0]
+    }
+     */
+
+    return newContract.deploy({
+      data: this.contractBytecode
+    }).send({
+      useGSN: false,
+      from: ethAddress,
+      gasPrice: this.config.gasPrice
+    })
+  }
+
+  /**
+   * Initialize newly deployed contract, must be called to retrieve GSN Balance
+   *
+   * @param ethAddress
+   * @param relayHubAddr
+   * @param dateTimeAddr
+   */
+  initializeContract(ethAddress, relayHubAddr, dateTimeAddr){
+
+    console.log(ethAddress, this.defaultInstance)
+
+    return this.defaultInstance.methods.initialize(relayHubAddr, dateTimeAddr).send({
+      useGSN: false,
+      from: ethAddress,
+      gasPrice: this.config.gasPrice
+    })
+  }
+
+  /*
+  ************************************************************************************************************
+  * Schema - Create, Update, Remove Table
+  ************************************************************************************************************
+   */
+
+  // fm call only
+  // we pass in ethAddress because we don't wait to wait for a fortmatic async fetch for ethAccounts
+  createTable(tableName, permission, cols, colTypes, ethAddress){
+
+    const tableNameValue = Web3.utils.stringToHex(tableName)
+    const tableKey = namehash(tableName)
+
+    if (cols.length !== colTypes.length) {
+      throw new Error('cols and colTypes array length mismatch')
+    }
+
+
+    if (this.debug){
+      console.log('createTable', tableKey)
+      console.log(tableNameValue)
+      console.log('cols', cols)
+      console.log('colTypes', colTypes)
+
+      // this should only work locally, fortmatic would use a different path
+      console.log(ethAddress || this.defaultWeb3.eth.personal.currentProvider.addresses[0])
+
+      console.log('gasPrice', this.config.gasPrice)
+    }
+
+    return this.defaultInstance.methods.createTable(
+      tableNameValue,
+      tableKey,
+      permission,
+      cols,
+      colTypes
+    ).send({
+      useGSN: false,
+      from: ethAddress || this.defaultWeb3.eth.personal.currentProvider.addresses[0],
+      gasPrice: this.config.gasPrice,
+      gas: 1500000
+    })
+  }
+
+  async getTableMetadata(tableName){
+
+    const tableKey = namehash(tableName)
+
+    return await this.ephemeralInstance.methods.getTableMetadata(tableKey).call()
+  }
+
+  async getTableSchema(tableName){
+    const tableKey = namehash(tableName)
+
+    return await this.ephemeralInstance.methods.getSchema(tableKey).call()
+  }
+
+  async getTableIds(tableName){
+    const tableKey = namehash(tableName)
+
+    return await this.ephemeralInstance.methods.getTableIds(tableKey).call()
+  }
+
 }
 
 export default ELA_JS
