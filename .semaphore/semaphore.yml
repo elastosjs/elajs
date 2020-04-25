@@ -1,0 +1,19 @@
+version: v1.0
+name: Test MyApp
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Setup Local Ganache Blockchain
+    task:
+      jobs:
+        - name: Install Blockchain
+          commands:
+            - cache restore
+            - npm install ganache-cli
+            - npm install @openzeppelin/cli
+            - npm install @openzeppelin/gsn-helpers
+            - cache store
+            - nohup npx ganache-cli --gasLimit 8000000 --gasPrice 1000000000 > log.out 2>&1 &
+            - 'nohup npx oz-gsn run-relayer --ethereumNodeURL http://localhost:8545 --port 8091 > relay-log.out 2>&1 &'
