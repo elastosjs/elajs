@@ -10,6 +10,7 @@ blocks:
       jobs:
         - name: Install Blockchain
           commands:
+            - sem-version node 10
             - cache restore
             - npm install ganache-cli
             - npm install @openzeppelin/cli
@@ -17,3 +18,5 @@ blocks:
             - cache store
             - nohup npx ganache-cli --gasLimit 8000000 --gasPrice 1000000000 > log.out 2>&1 &
             - 'nohup npx oz-gsn run-relayer --ethereumNodeURL http://localhost:8545 --port 8091 > relay-log.out 2>&1 &'
+            - more log.out
+            - more relay-log.out
