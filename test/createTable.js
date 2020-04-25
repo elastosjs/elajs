@@ -5,7 +5,7 @@ const assert = chai.assert
 
 const AssertionError = chai.AssertionError
 
-const { ELA_JS } = require('../dist/ela-js.cjs')
+const { elajs } = require('../dist/ela-js.cjs')
 
 const Web3 = require('web3')
 const HDWalletProvider = require('@truffle/hdwallet-provider')
@@ -13,7 +13,7 @@ const { fromConnection, ephemeral } = require("@openzeppelin/network")
 
 describe('Tests for Create Table/Schema', () => {
 
-  let ozWeb3, web3, ephemeralInstance, elajs
+  let ozWeb3, web3, ephemeralInstance, elajsDb
 
   const TEST_TABLE = 'test_table'
   const TEST_COLS = ['name', 'age', 'some_data'].map((colName) => Web3.utils.stringToHex(colName))
@@ -34,10 +34,13 @@ describe('Tests for Create Table/Schema', () => {
       process.env.MNEMONIC, process.env.PROVIDER_URL
     ))
 
-    elajs = new ELA_JS({
+    elajsDb = new elajs.database({
       defaultWeb3: web3,
       ephemeralWeb3: ozWeb3,
-      contractAddress: process.env.ELAJSSTORE_CONTRACT_ADDR
+
+      databaseContractAddr: process.env.ELAJSSTORE_CONTRACT_ADDR,
+      dateTimeContractAddr: process.env.DATETIME_CONTRACT_ADDR,
+      relayHubAddr: process.env.RELAY_HUB_ADDR
     })
   })
 
@@ -48,7 +51,7 @@ describe('Tests for Create Table/Schema', () => {
     console.log(ephemeralAddr)
 
     try {
-      await elajs.createTable(TEST_TABLE, 1, TEST_COLS, TEST_COL_TYPES, ephemeralAddr)
+      await elajsDb.createTable(TEST_TABLE, 1, TEST_COLS, TEST_COL_TYPES, ephemeralAddr)
       assert.fail('create table should fail with unknown address')
     } catch (err){
       expect(err).to.not.be.an.instanceof(AssertionError)
@@ -62,7 +65,7 @@ describe('Tests for Create Table/Schema', () => {
     modifiedColTypesAry.shift()
 
     try {
-      await elajs.createTable(TEST_TABLE, 1, TEST_COLS, modifiedColTypesAry)
+      await elajsDb.createTable(TEST_TABLE, 1, TEST_COLS, modifiedColTypesAry)
       assert.fail('create table should fail with array len mismatch')
     } catch (err){
       expect(err).to.not.be.an.instanceof(AssertionError)
@@ -73,11 +76,11 @@ describe('Tests for Create Table/Schema', () => {
   it('Should create a table with schema and return it', async () => {
 
     // we don't need to pass an ethAddress because it knows how to use a local web3
-    await elajs.createTable(TEST_TABLE, 1, TEST_COLS, TEST_COL_TYPES)
+    await elajsDb.createTable(TEST_TABLE, 1, TEST_COLS, TEST_COL_TYPES)
 
     // TODO: we should directly call the SC and check for the table
 
-    const schema = await elajs.getTableSchema(TEST_TABLE)
+    const schema = await elajsDb.getTableSchema(TEST_TABLE)
 
     const colsResult = schema.columns.map((colData) => {
       return {

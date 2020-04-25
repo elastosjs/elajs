@@ -8,7 +8,7 @@
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "test": "node test/test.js",
+    "test": "NODE_ENV=local node_modules/mocha/bin/mocha ./test/index.js --timeout 10000 --bail --exit",
     "pretest": "npm run build"
   },
   "devDependencies": {

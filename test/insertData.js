@@ -5,7 +5,7 @@ const assert = chai.assert
 
 const AssertionError = chai.AssertionError
 
-const { ELA_JS, uintToBytes32, namehash, keccak256 } = require('../dist/ela-js.cjs')
+const { elajs, uintToBytes32, namehash, keccak256 } = require('../dist/ela-js.cjs')
 
 const Web3 = require('web3')
 const HDWalletProvider = require('@truffle/hdwallet-provider')
@@ -15,7 +15,7 @@ const ELAJSStoreJSON = require('../src/contracts/ELAJSStore.json')
 
 describe('Tests for Insert Data', () => {
 
-  let ozWeb3, web3, ephemeralInstance, ownerInstance, elajs
+  let ozWeb3, web3, ephemeralInstance, ownerInstance, elajsDb
 
   const TEST_TABLE = 'user'// + Web3.utils.randomHex(3).substring(2)
   const TEST_COLS_RAW = ['firstName', 'age', 'some_data']
@@ -39,13 +39,16 @@ describe('Tests for Insert Data', () => {
       process.env.MNEMONIC, process.env.PROVIDER_URL
     ))
 
-    elajs = new ELA_JS({
+    elajsDb = new elajs.database({
       defaultWeb3: web3,
       ephemeralWeb3: ozWeb3,
-      contractAddress: process.env.ELAJSSTORE_CONTRACT_ADDR
+
+      databaseContractAddr: process.env.ELAJSSTORE_CONTRACT_ADDR,
+      dateTimeContractAddr: process.env.DATETIME_CONTRACT_ADDR,
+      relayHubAddr: process.env.RELAY_HUB_ADDR
     })
 
-    await elajs.createTable(TEST_TABLE, 2, TEST_COLS, TEST_COL_TYPES)
+    await elajsDb.createTable(TEST_TABLE, 2, TEST_COLS, TEST_COL_TYPES)
   })
 
   it('Should insert a row of data', async () => {
@@ -58,13 +61,13 @@ describe('Tests for Insert Data', () => {
       randomBytes
     ]
 
-    rowId = await elajs.insertRow(TEST_TABLE, TEST_COLS_RAW, vals) //, {ethAddress: web3.eth.personal.currentProvider.addresses[0]})
+    rowId = await elajsDb.insertRow(TEST_TABLE, TEST_COLS_RAW, vals) //, {ethAddress: web3.eth.personal.currentProvider.addresses[0]})
 
   })
 
   it('Should check the row of data', async () => {
 
-    const rowData = await elajs.getRow(TEST_TABLE, rowId)
+    const rowData = await elajsDb.getRow(TEST_TABLE, rowId)
 
     expect(rowData[0].value).to.be.equal('John')
     expect(rowData[1].value).to.be.equal(30)
