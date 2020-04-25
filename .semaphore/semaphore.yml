@@ -10,6 +10,7 @@ blocks:
       jobs:
         - name: Install Blockchain
           commands:
+            - checkout
             - sem-version node 10
             - cache restore
             - npm install ganache-cli
@@ -21,7 +22,6 @@ blocks:
             - 'nohup npx oz-gsn run-relayer --ethereumNodeURL http://localhost:8545 --port 8091 > relay-log.out 2>&1 &'
             - 'grep -oP ''^Mnemonic:\s+\K(.*)$'' log.out'
             - npx oz init semaphore-test --no-interactive
-            - sem get secret DateTimeSmartContract
             - ls
       secrets:
         - name: DateTimeSmartContract
