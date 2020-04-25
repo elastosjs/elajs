@@ -20,8 +20,9 @@ blocks:
             - sleep 10s
             - 'nohup npx oz-gsn run-relayer --ethereumNodeURL http://localhost:8545 --port 8091 > relay-log.out 2>&1 &'
             - 'grep -oP ''^Mnemonic:\s+\K(.*)$'' log.out'
-            - npx oz init semaphore-test --no-
+            - npx oz init semaphore-test --no-interactive
             - sem get secret DateTimeSmartContract
+            - ls
       secrets:
         - name: DateTimeSmartContract
       env_vars:
