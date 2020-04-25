@@ -7,7 +7,9 @@ const AssertionError = chai.AssertionError
 
 const _ = require('lodash')
 
-// A test would require a local redeploy I guess
+// this redeploys the contracts, and has side-effects, see file docs
+require('.setup')
+
 require('./config')
 
 const ELAJSStoreJSON = require('../src/contracts/ELAJSStore.json')
@@ -19,7 +21,6 @@ const { fromConnection, ephemeral } = require("@openzeppelin/network")
 
 const requireDirectory = require('require-directory')
 
-// console.log(process.env)
 
 /**
  * These are all late tests for QA
@@ -67,5 +68,6 @@ describe('ELAJS Tests', function(){
     expect(gsnBalance > 0).to.be.true
   })
 
-  requireDirectory(module, './', {exclude: /(index\.js)|(config\.js)|(\.json)|(postman)/})
+  requireDirectory(module, './', {exclude: /(index\.js)|(config\.js)|(setup\.js)|(\.json)|(postman)/})
 })
+

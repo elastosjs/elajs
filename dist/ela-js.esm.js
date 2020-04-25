@@ -20319,8 +20319,16 @@ var networks = {
 		},
 		events: {
 		},
-		address: "0x4758213ffaD552EE16435f003e409b2e9dF65D57",
-		updated_at: 1587790288813
+		address: "0x757dbc31BB286832d21C505F1D80FbcfF6756e49",
+		updated_at: 1587793467869
+	},
+	"1587803664569": {
+		links: {
+		},
+		events: {
+		},
+		address: "0xbF5b1e4C21Fb2fd9075cAE924f4C4Fa9BC9fa486",
+		updated_at: 1587805680464
 	}
 };
 var ELAJSStoreJSON = {
