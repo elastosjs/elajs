@@ -17,6 +17,6 @@ blocks:
             - npm install @openzeppelin/gsn-helpers
             - cache store
             - nohup npx ganache-cli --gasLimit 8000000 --gasPrice 1000000000 > log.out 2>&1 &
+            - sleep 30s
             - 'nohup npx oz-gsn run-relayer --ethereumNodeURL http://localhost:8545 --port 8091 > relay-log.out 2>&1 &'
-            - more log.out
-            - more relay-log.out
+            - 'grep -oP ''^Mnemonic:\s+\K(.*)$'' log.out'
