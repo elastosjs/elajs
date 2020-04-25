@@ -23,4 +23,7 @@ blocks:
             - npx oz init semaphore-test --no-
             - sem get secret DateTimeSmartContract
       secrets:
-        - name: DateTime Smart Contract
+        - name: DateTimeSmartContract
+      env_vars:
+        - name: NODE_ENV
+          value: semaphore
