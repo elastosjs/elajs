@@ -17,6 +17,9 @@ blocks:
             - npm install @openzeppelin/gsn-helpers
             - cache store
             - nohup npx ganache-cli --gasLimit 8000000 --gasPrice 1000000000 > log.out 2>&1 &
-            - sleep 30s
+            - sleep 10s
             - 'nohup npx oz-gsn run-relayer --ethereumNodeURL http://localhost:8545 --port 8091 > relay-log.out 2>&1 &'
             - 'grep -oP ''^Mnemonic:\s+\K(.*)$'' log.out'
+            - npx oz init semaphore-test --no-interactive
+      secrets:
+        - name: DateTime Smart Contract
