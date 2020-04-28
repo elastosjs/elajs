@@ -23,7 +23,6 @@ export default class database {
     ************************************************************************************************************
      */
     this.databaseContractAddr = options.databaseContractAddr
-    this.dateTimeContractAddr = options.dateTimeContractAddr
     this.relayHubAddr = options.relayHubAddr
 
     /*
@@ -455,15 +454,10 @@ export default class database {
       throw new Error('Missing relayHub address')
     }
 
-    if (!this.dateTimeContractAddr){
-      throw new Error('Missing DateTime contract address')
-    }
-
     // console.log(ethAddress, this.defaultInstance)
 
     return this.defaultInstance.methods.initialize(
-      this.relayHubAddr,
-      this.dateTimeContractAddr
+      this.relayHubAddr
     ).send({
       useGSN: false,
       from: ethAddress,

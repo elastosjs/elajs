@@ -1,11 +1,13 @@
 
-# ela-js - ElastosJS SDK - [www.elastosjs.com](https://www.elastosjs.com)
+# ela-js - Elastos Community JS SDK - [www.elajs.com](https://www.elajs.com)
 
-This SDK allows you to interact with your ElastosJS Smart Contract Databases.
+See docs at: http://docs.elajs.com
+
+Tutorials at: http://tutorials.elajs.com
 
 ## This is an ALPHA - Proof-of-Concept Version
 
-Expect significant changes between this and the official release.
+Expect significant changes between this and the next BETA release.
 
 ### All Methods are Temporary
 

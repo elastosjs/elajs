@@ -10,8 +10,7 @@
 * 3.  Same as above set DEFAULT_WALLET
 *
 * Things to note:
-* 1.  This setup script will replace the env file's DATETIME_CONTRACT_ADDR and
-*     ELAJSSTORE_CONTRACT_ADDR values with the latest deploy
+* 1.  This setup script will replace the env file's ELAJSSTORE_CONTRACT_ADDR value with the latest deploy
 * 2.  env file's RELAY_HUB_ADDR is network dependent and should be set properly already
 ***************************************************************************************************
  */

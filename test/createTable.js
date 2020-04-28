@@ -39,7 +39,6 @@ describe('Tests for Create Table/Schema', () => {
       ephemeralWeb3: ozWeb3,
 
       databaseContractAddr: process.env.ELAJSSTORE_CONTRACT_ADDR,
-      dateTimeContractAddr: process.env.DATETIME_CONTRACT_ADDR,
       relayHubAddr: process.env.RELAY_HUB_ADDR
     })
   })
