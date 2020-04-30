@@ -165,7 +165,7 @@ export default class database {
 
     const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
 
-    // Be lazy for now and always check? TODO: add caching
+    // Be lazy for now and always check? TODO: add caching, or let it passed in?
     const schema = await this.getTableSchema(tableName)
 
     // create a map of col name to type
@@ -178,13 +178,11 @@ export default class database {
       colTypeMap.set(colNameStr, colType)
     })
 
-    let web3eth, instance, ethAddress
+    let instance, ethAddress
     if (options.ethAddress){
-      web3eth = this.defaultWeb3.eth
       instance = this.defaultInstance
       ethAddress = options.ethAddress
     } else {
-      web3eth = this.ephemeralWeb3.lib.eth
       instance = this.ephemeralInstance
       ethAddress = this.ephemeralWeb3.accounts[0]
     }
@@ -556,40 +554,22 @@ export default class database {
    */
   static castType(colType, val){
 
+    this.checkType(colType, val)
+
     switch (colType){
 
       // we don't really expect to do anything for BYTES32,
       // just make sure it's a bytes32 string
       case constants.FIELD_TYPE.BYTES32:
-        if (check.not.string(val)){
-          throw new Error('BYTES32 expects a string starting with 0x')
-        }
-
-        if (val.length !== 66){
-          throw new Error('BYTES32 expects a string with length 66')
-        }
         return val
 
       case constants.FIELD_TYPE.UINT:
-        if (check.not.integer(val) || check.not.greaterOrEqual(val, 0)){
-          throw new Error('UINT expects 0 or positive integers')
-        }
         return uintToBytes32(val)
 
       case constants.FIELD_TYPE.STRING:
-        if (check.not.string(val)){
-          throw new Error('STRING expects a string')
-        }
-
-        if (check.not.lessOrEqual(val.length, 32)){
-          throw new Error('STRING max chars is 32')
-        }
         return Web3.utils.stringToHex(val)
 
       case constants.FIELD_TYPE.BOOL:
-        if (check.not.boolean(val)){
-          throw new Error('BOOL expects a boolean')
-        }
         return uintToBytes32(val ? 1 : 0)
 
       default:
@@ -624,20 +604,19 @@ export default class database {
         break
 
       case constants.FIELD_TYPE.UINT:
-        val = Web3.utils.hexToNumber(val)
         if (check.not.integer(val) || check.not.greaterOrEqual(val, 0)){
           throw new Error('UINT expects 0 or positive integers')
         }
         break
 
       case constants.FIELD_TYPE.STRING:
-        val = Web3.utils.hexToString(val)
         if (check.not.string(val)){
           throw new Error('STRING expects a string')
         }
 
-        // TODO check string length <= 32
-
+        if (check.not.lessOrEqual(val.length, 32)){
+          throw new Error('STRING max chars is 32')
+        }
         break
 
       case constants.FIELD_TYPE.BOOL:

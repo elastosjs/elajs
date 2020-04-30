@@ -18,10 +18,10 @@ describe('Tests for Insert Data', () => {
   let ozWeb3, web3, ephemeralInstance, ownerInstance, elajsDb
 
   const TEST_TABLE = 'user'// + Web3.utils.randomHex(3).substring(2)
-  const TEST_COLS = ['firstName', 'age', 'some_data']
-  const TEST_COL_TYPES = ['STRING', 'UINT', 'BYTES32']
+  const TEST_COLS = ['firstName', 'age', 'some_data', 'some_bool']
+  const TEST_COL_TYPES = ['STRING', 'UINT', 'BYTES32', 'BOOL']
 
-  let rowId, randomBytes
+  let rowId, rowId2, randomBytes
 
   before(async () => {
 
@@ -51,7 +51,7 @@ describe('Tests for Insert Data', () => {
     await elajsDb.createTable(TEST_TABLE, 2, TEST_COLS, TEST_COL_TYPES)
   })
 
-  it('Should insert a row of data', async () => {
+  it('Should insert a row of data - ephemerally', async () => {
 
     randomBytes = Web3.utils.randomHex(32)
 
@@ -59,20 +59,46 @@ describe('Tests for Insert Data', () => {
     const vals = [
       'John',
       30,
-      randomBytes
+      randomBytes,
+      true
     ]
 
     rowId = await elajsDb.insertRow(TEST_TABLE, TEST_COLS, vals) //, {ethAddress: web3.eth.personal.currentProvider.addresses[0]})
 
   })
 
-  it('Should check the row of data', async () => {
+  it('Should check the previous row of data', async () => {
 
     const rowData = await elajsDb.getRow(TEST_TABLE, rowId)
 
     expect(rowData[0].value).to.be.equal('John')
     expect(rowData[1].value).to.be.equal(30)
     expect(rowData[2].value).to.be.equal(randomBytes)
+    expect(rowData[3].value).to.be.equal(true)
+  })
+
+  it('Should insert a row of data - with private key', async () => {
+
+    // raw
+    const vals = [
+      'Mary',
+      88123,
+      randomBytes,
+      false
+    ]
+
+    rowId2 = await elajsDb.insertRow(TEST_TABLE, TEST_COLS, vals, {ethAddress: web3.eth.personal.currentProvider.addresses[0]})
+
+  })
+
+  it('Should check the previous row of data', async () => {
+
+    const rowData = await elajsDb.getRow(TEST_TABLE, rowId2)
+
+    expect(rowData[0].value).to.be.equal('Mary')
+    expect(rowData[1].value).to.be.equal(88123)
+    expect(rowData[2].value).to.be.equal(randomBytes)
+    expect(rowData[3].value).to.be.equal(false)
   })
 
 

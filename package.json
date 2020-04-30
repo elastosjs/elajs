@@ -9,8 +9,9 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "NODE_ENV=local node_modules/mocha/bin/mocha ./test/index.js --timeout 10000 --bail --exit",
+    "pretest": "npm run build",
     "test-testnet": "NODE_ENV=testnet node_modules/mocha/bin/mocha ./test/index.js --timeout 90000 --bail --exit",
-    "pretest": "npm run build"
+    "pretest-testnet": "npm run build"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",

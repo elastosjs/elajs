@@ -18681,8 +18681,8 @@ var networks = {
 		},
 		events: {
 		},
-		address: "0x29408db953eC74A4468e438c7b5607dCB056F454",
-		updated_at: 1588234893940
+		address: "0xe08635E966F0864a3C1E01849Dc6690FCae8C3D3",
+		updated_at: 1588235793185
 	},
 	"1587523878365": {
 		links: {
@@ -18785,8 +18785,8 @@ var networks = {
 		},
 		events: {
 		},
-		address: "0x43C4C56D45BA67CC04b5E13FAef8ba9317547C83",
-		updated_at: 1588234601628
+		address: "0x4e0720eDaB37cB801E9b9F736c71c112dF1a2417",
+		updated_at: 1588236053696
 	}
 };
 var ELAJSStoreJSON = {
@@ -19530,19 +19530,19 @@ var database = /*#__PURE__*/function () {
   }, {
     key: "insertRow",
     value: function () {
-      var _insertRow = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee5(tableName, cols, values, options) {
-        var _defaultOptions, colsLen, id, _this$_getKeys, idKey, tableKey, schema, colTypeMap, web3eth, instance, ethAddress, nonceStart, promises, i, fieldKey, val;
+      var _insertRow = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee4(tableName, cols, values, options) {
+        var _defaultOptions, colsLen, id, _this$_getKeys, idKey, tableKey, schema, colTypeMap, instance, ethAddress, i, fieldKey, val;
 
-        return _regeneratorRuntime.wrap(function _callee5$(_context5) {
+        return _regeneratorRuntime.wrap(function _callee4$(_context4) {
           while (1) {
-            switch (_context5.prev = _context5.next) {
+            switch (_context4.prev = _context4.next) {
               case 0:
                 _defaultOptions = {};
                 colsLen = cols.length;
                 options = Object.assign(_defaultOptions, options);
 
                 if (!(options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66))) {
-                  _context5.next = 5;
+                  _context4.next = 5;
                   break;
                 }
 
@@ -19550,7 +19550,7 @@ var database = /*#__PURE__*/function () {
 
               case 5:
                 if (!(colsLen !== values.length)) {
-                  _context5.next = 7;
+                  _context4.next = 7;
                   break;
                 }
 
@@ -19563,13 +19563,13 @@ var database = /*#__PURE__*/function () {
                   id = options.id;
                 }
 
-                _this$_getKeys = this._getKeys(tableName, id.substring(2)), idKey = _this$_getKeys.idKey, tableKey = _this$_getKeys.tableKey; // Be lazy for now and always check? TODO: add caching
+                _this$_getKeys = this._getKeys(tableName, id.substring(2)), idKey = _this$_getKeys.idKey, tableKey = _this$_getKeys.tableKey; // Be lazy for now and always check? TODO: add caching, or let it passed in?
 
-                _context5.next = 12;
+                _context4.next = 12;
                 return this.getTableSchema(tableName);
 
               case 12:
-                schema = _context5.sent;
+                schema = _context4.sent;
                 // create a map of col name to type
                 colTypeMap = new Map();
                 schema.columns.map(function (colData) {
@@ -19579,69 +19579,44 @@ var database = /*#__PURE__*/function () {
                 });
 
                 if (options.ethAddress) {
-                  web3eth = this.defaultWeb3.eth;
                   instance = this.defaultInstance;
                   ethAddress = options.ethAddress;
                 } else {
-                  web3eth = this.ephemeralWeb3.lib.eth;
                   instance = this.ephemeralInstance;
                   ethAddress = this.ephemeralWeb3.accounts[0];
                 } // TODO: parallel inserts with nonces
 
 
-                _context5.next = 18;
-                return web3eth.getTransactionCount(ethAddress, 'pending');
+                i = 0;
 
-              case 18:
-                nonceStart = _context5.sent;
-                promises = [];
-
-                for (i = 0; i < colsLen; i++) {
-                  fieldKey = keccak256(cols[i]);
-                  val = this.constructor.castType(colTypeMap.get(cols[i]), values[i]);
-
-                  (function (val, fieldKey, i) {
-                    promises.push(new Promise(function (resolve) {
-                      setTimeout( /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee4() {
-                        return _regeneratorRuntime.wrap(function _callee4$(_context4) {
-                          while (1) {
-                            switch (_context4.prev = _context4.next) {
-                              case 0:
-                                _context4.t0 = resolve;
-                                _context4.next = 3;
-                                return instance.methods.insertVal(tableKey, idKey, fieldKey, id, val // we always insert bytes32 strings
-                                ).send({
-                                  from: ethAddress,
-                                  nonce: nonceStart + i
-                                });
-
-                              case 3:
-                                _context4.t1 = _context4.sent;
-                                (0, _context4.t0)(_context4.t1);
-
-                              case 5:
-                              case "end":
-                                return _context4.stop();
-                            }
-                          }
-                        }, _callee4);
-                      })), i * 10000);
-                    }));
-                  })(val, fieldKey, i);
+              case 17:
+                if (!(i < colsLen)) {
+                  _context4.next = 25;
+                  break;
                 }
 
-                _context5.next = 23;
-                return Promise.all(promises);
+                fieldKey = keccak256(cols[i]);
+                val = this.constructor.castType(colTypeMap.get(cols[i]), values[i]);
+                _context4.next = 22;
+                return instance.methods.insertVal(tableKey, idKey, fieldKey, id, val // we always insert bytes32 strings
+                ).send({
+                  from: ethAddress
+                });
 
-              case 23:
-                return _context5.abrupt("return", id);
+              case 22:
+                i++;
+                _context4.next = 17;
+                break;
 
-              case 24:
+              case 25:
+                return _context4.abrupt("return", id);
+
+              case 26:
               case "end":
-                return _context5.stop();
+                return _context4.stop();
             }
           }
-        }, _callee5, this);
+        }, _callee4, this);
       }));
 
       function insertRow(_x3, _x4, _x5, _x6) {
@@ -19694,48 +19669,48 @@ var database = /*#__PURE__*/function () {
   }, {
     key: "getVal",
     value: function () {
-      var _getVal2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee6(tableName, id, fieldName, fieldType) {
+      var _getVal2 = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee5(tableName, id, fieldName, fieldType) {
         var val;
-        return _regeneratorRuntime.wrap(function _callee6$(_context6) {
+        return _regeneratorRuntime.wrap(function _callee5$(_context5) {
           while (1) {
-            switch (_context6.prev = _context6.next) {
+            switch (_context5.prev = _context5.next) {
               case 0:
-                _context6.next = 2;
+                _context5.next = 2;
                 return this._getVal(tableName, id, fieldName);
 
               case 2:
-                val = _context6.sent;
+                val = _context5.sent;
 
                 if (!fieldType) {
-                  _context6.next = 13;
+                  _context5.next = 13;
                   break;
                 }
 
-                _context6.t0 = fieldType;
-                _context6.next = _context6.t0 === constants.FIELD_TYPE.UINT ? 7 : _context6.t0 === constants.FIELD_TYPE.STRING ? 9 : _context6.t0 === constants.FIELD_TYPE.BOOL ? 11 : 13;
+                _context5.t0 = fieldType;
+                _context5.next = _context5.t0 === constants.FIELD_TYPE.UINT ? 7 : _context5.t0 === constants.FIELD_TYPE.STRING ? 9 : _context5.t0 === constants.FIELD_TYPE.BOOL ? 11 : 13;
                 break;
 
               case 7:
                 val = Web3.utils.hexToNumber(val);
-                return _context6.abrupt("break", 13);
+                return _context5.abrupt("break", 13);
 
               case 9:
                 val = Web3.utils.hexToString(val);
-                return _context6.abrupt("break", 13);
+                return _context5.abrupt("break", 13);
 
               case 11:
                 val = !!Web3.utils.hexToNumber(val);
-                return _context6.abrupt("break", 13);
+                return _context5.abrupt("break", 13);
 
               case 13:
-                return _context6.abrupt("return", val);
+                return _context5.abrupt("return", val);
 
               case 14:
               case "end":
-                return _context6.stop();
+                return _context5.stop();
             }
           }
-        }, _callee6, this);
+        }, _callee5, this);
       }));
 
       function getVal(_x7, _x8, _x9, _x10) {
@@ -19823,23 +19798,23 @@ var database = /*#__PURE__*/function () {
   }, {
     key: "getGSNBalance",
     value: function () {
-      var _getGSNBalance = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee7() {
-        return _regeneratorRuntime.wrap(function _callee7$(_context7) {
+      var _getGSNBalance = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee6() {
+        return _regeneratorRuntime.wrap(function _callee6$(_context6) {
           while (1) {
-            switch (_context7.prev = _context7.next) {
+            switch (_context6.prev = _context6.next) {
               case 0:
-                _context7.next = 2;
+                _context6.next = 2;
                 return this.ephemeralInstance.methods.getGSNBalance().call();
 
               case 2:
-                return _context7.abrupt("return", _context7.sent);
+                return _context6.abrupt("return", _context6.sent);
 
               case 3:
               case "end":
-                return _context7.stop();
+                return _context6.stop();
             }
           }
-        }, _callee7, this);
+        }, _callee6, this);
       }));
 
       function getGSNBalance() {
@@ -20003,7 +19978,37 @@ var database = /*#__PURE__*/function () {
   }, {
     key: "getTableMetadata",
     value: function () {
-      var _getTableMetadata = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee8(tableName) {
+      var _getTableMetadata = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee7(tableName) {
+        var tableKey;
+        return _regeneratorRuntime.wrap(function _callee7$(_context7) {
+          while (1) {
+            switch (_context7.prev = _context7.next) {
+              case 0:
+                tableKey = namehash(tableName);
+                _context7.next = 3;
+                return this.ephemeralInstance.methods.getTableMetadata(tableKey).call();
+
+              case 3:
+                return _context7.abrupt("return", _context7.sent);
+
+              case 4:
+              case "end":
+                return _context7.stop();
+            }
+          }
+        }, _callee7, this);
+      }));
+
+      function getTableMetadata(_x11) {
+        return _getTableMetadata.apply(this, arguments);
+      }
+
+      return getTableMetadata;
+    }()
+  }, {
+    key: "getTableSchema",
+    value: function () {
+      var _getTableSchema = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee8(tableName) {
         var tableKey;
         return _regeneratorRuntime.wrap(function _callee8$(_context8) {
           while (1) {
@@ -20011,7 +20016,7 @@ var database = /*#__PURE__*/function () {
               case 0:
                 tableKey = namehash(tableName);
                 _context8.next = 3;
-                return this.ephemeralInstance.methods.getTableMetadata(tableKey).call();
+                return this.ephemeralInstance.methods.getSchema(tableKey).call();
 
               case 3:
                 return _context8.abrupt("return", _context8.sent);
@@ -20024,16 +20029,16 @@ var database = /*#__PURE__*/function () {
         }, _callee8, this);
       }));
 
-      function getTableMetadata(_x11) {
-        return _getTableMetadata.apply(this, arguments);
+      function getTableSchema(_x12) {
+        return _getTableSchema.apply(this, arguments);
       }
 
-      return getTableMetadata;
+      return getTableSchema;
     }()
   }, {
-    key: "getTableSchema",
+    key: "getTableIds",
     value: function () {
-      var _getTableSchema = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee9(tableName) {
+      var _getTableIds = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee9(tableName) {
         var tableKey;
         return _regeneratorRuntime.wrap(function _callee9$(_context9) {
           while (1) {
@@ -20041,7 +20046,7 @@ var database = /*#__PURE__*/function () {
               case 0:
                 tableKey = namehash(tableName);
                 _context9.next = 3;
-                return this.ephemeralInstance.methods.getSchema(tableKey).call();
+                return this.ephemeralInstance.methods.getTableIds(tableKey).call();
 
               case 3:
                 return _context9.abrupt("return", _context9.sent);
@@ -20052,36 +20057,6 @@ var database = /*#__PURE__*/function () {
             }
           }
         }, _callee9, this);
-      }));
-
-      function getTableSchema(_x12) {
-        return _getTableSchema.apply(this, arguments);
-      }
-
-      return getTableSchema;
-    }()
-  }, {
-    key: "getTableIds",
-    value: function () {
-      var _getTableIds = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime.mark(function _callee10(tableName) {
-        var tableKey;
-        return _regeneratorRuntime.wrap(function _callee10$(_context10) {
-          while (1) {
-            switch (_context10.prev = _context10.next) {
-              case 0:
-                tableKey = namehash(tableName);
-                _context10.next = 3;
-                return this.ephemeralInstance.methods.getTableIds(tableKey).call();
-
-              case 3:
-                return _context10.abrupt("return", _context10.sent);
-
-              case 4:
-              case "end":
-                return _context10.stop();
-            }
-          }
-        }, _callee10, this);
       }));
 
       function getTableIds(_x13) {
@@ -20106,43 +20081,21 @@ var database = /*#__PURE__*/function () {
   }], [{
     key: "castType",
     value: function castType(colType, val) {
+      this.checkType(colType, val);
+
       switch (colType) {
         // we don't really expect to do anything for BYTES32,
         // just make sure it's a bytes32 string
         case constants.FIELD_TYPE.BYTES32:
-          if (check.not.string(val)) {
-            throw new Error('BYTES32 expects a string starting with 0x');
-          }
-
-          if (val.length !== 66) {
-            throw new Error('BYTES32 expects a string with length 66');
-          }
-
           return val;
 
         case constants.FIELD_TYPE.UINT:
-          if (check.not.integer(val) || check.not.greaterOrEqual(val, 0)) {
-            throw new Error('UINT expects 0 or positive integers');
-          }
-
           return uintToBytes32(val);
 
         case constants.FIELD_TYPE.STRING:
-          if (check.not.string(val)) {
-            throw new Error('STRING expects a string');
-          }
-
-          if (check.not.lessOrEqual(val.length, 32)) {
-            throw new Error('STRING max chars is 32');
-          }
-
           return Web3.utils.stringToHex(val);
 
         case constants.FIELD_TYPE.BOOL:
-          if (check.not["boolean"](val)) {
-            throw new Error('BOOL expects a boolean');
-          }
-
           return uintToBytes32(val ? 1 : 0);
 
         default:
@@ -20177,8 +20130,6 @@ var database = /*#__PURE__*/function () {
           break;
 
         case constants.FIELD_TYPE.UINT:
-          val = Web3.utils.hexToNumber(val);
-
           if (check.not.integer(val) || check.not.greaterOrEqual(val, 0)) {
             throw new Error('UINT expects 0 or positive integers');
           }
@@ -20186,12 +20137,13 @@ var database = /*#__PURE__*/function () {
           break;
 
         case constants.FIELD_TYPE.STRING:
-          val = Web3.utils.hexToString(val);
-
           if (check.not.string(val)) {
             throw new Error('STRING expects a string');
-          } // TODO check string length <= 32
+          }
 
+          if (check.not.lessOrEqual(val.length, 32)) {
+            throw new Error('STRING max chars is 32');
+          }
 
           break;
 
