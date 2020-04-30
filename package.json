@@ -9,6 +9,7 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "NODE_ENV=local node_modules/mocha/bin/mocha ./test/index.js --timeout 10000 --bail --exit",
+    "test-testnet": "NODE_ENV=testnet node_modules/mocha/bin/mocha ./test/index.js --timeout 90000 --bail --exit",
     "pretest": "npm run build"
   },
   "devDependencies": {
@@ -34,6 +35,7 @@
   "author": "Clarence Liu - clarence.hl.liu@gmail.com",
   "license": "MIT",
   "dependencies": {
+    "check-types": "^11.1.2",
     "lodash": "^4.17.15",
     "sha3": "^2.1.2"
   }

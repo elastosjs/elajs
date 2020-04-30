@@ -1,6 +1,6 @@
 
 import bytesToTypes from './bytesToTypes'
-import typesToBytes from './typesToBytes'
+import { uintToBytes32 } from './typesToBytes'
 import { namehash } from './namehash'
 import { keccak256 } from './keccak256'
 import elajs from './elajs'
@@ -21,7 +21,7 @@ const exports = {
   keccak256,
 
   ...bytesToTypes,
-  ...typesToBytes
+  uintToBytes32
 }
 
 export default exports

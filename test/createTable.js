@@ -16,8 +16,8 @@ describe('Tests for Create Table/Schema', () => {
   let ozWeb3, web3, ephemeralInstance, elajsDb
 
   const TEST_TABLE = 'test_table'
-  const TEST_COLS = ['name', 'age', 'some_data'].map((colName) => Web3.utils.stringToHex(colName))
-  const TEST_COL_TYPES = ['STRING', 'UINT', 'BYTES32'].map((colName) => Web3.utils.stringToHex(colName))
+  const TEST_COLS = ['name', 'age', 'some_data']
+  const TEST_COL_TYPES = ['STRING', 'UINT', 'BYTES32']
 
   before(async () => {
 
@@ -47,7 +47,7 @@ describe('Tests for Create Table/Schema', () => {
 
     const ephemeralAddr = (await ozWeb3.lib.eth.getAccounts())[0]
 
-    console.log(ephemeralAddr)
+    // console.log(ephemeralAddr)
 
     try {
       await elajsDb.createTable(TEST_TABLE, 1, TEST_COLS, TEST_COL_TYPES, ephemeralAddr)

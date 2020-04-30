@@ -8,7 +8,7 @@ const AssertionError = chai.AssertionError
 const _ = require('lodash')
 
 // this redeploys the contracts, and has side-effects, see file docs
-require('.setup')
+// require('.setup')
 
 require('./config')
 
@@ -47,16 +47,19 @@ describe('ELAJS Tests', function(){
 
   })
 
-  it('Should error because this contract address does not exist', async () => {
-    const fakeContractAddr = '0xb9A7C26DEA47Fc965f5c5311dd5618C0c6B97f13'
-    const fakeInstance = new ozWeb3.lib.eth.Contract(ELAJSStoreJSON.abi, fakeContractAddr)
-    try {
-      await fakeInstance.methods.owner().call()
-      assert.fail('owner fetch should fail / not be defined for fakeContractAddr')
-    } catch (err){
-      expect(err).to.not.be.an.instanceof(AssertionError)
-    }
-  })
+  if (process.env.NODE_ENV === 'local') {
+    // calls only throw errors locally
+    it('Should error because this contract address does not exist', async () => {
+      const fakeContractAddr = '0xb9A7C26DEA47Fc965f5c5311dd5618C0c6B97f13'
+      const fakeInstance = new ozWeb3.lib.eth.Contract(ELAJSStoreJSON.abi, fakeContractAddr)
+      try {
+        await fakeInstance.methods.owner().call()
+        assert.fail('owner fetch should fail / not be defined for fakeContractAddr')
+      } catch (err){
+        expect(err).to.not.be.an.instanceof(AssertionError)
+      }
+    })
+  }
 
   it('Should return our default owner', async () => {
     const owner = await ephemeralInstance.methods.owner().call()

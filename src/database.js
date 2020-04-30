@@ -2,8 +2,10 @@ import ELAJSStoreJSON from './contracts/ELAJSStore.json'
 import { namehash } from './namehash'
 import Web3 from 'web3'
 import { keccak256 } from './keccak256'
+import { uintToBytes32 } from './typesToBytes'
 import constants from './constants'
 import relayHubData from './relay-hub/data'
+import check from 'check-types'
 
 export default class database {
 
@@ -55,7 +57,8 @@ export default class database {
     this.databaseContractBytecode = ELAJSStoreJSON.bytecode
 
     this.config = {
-      gasPrice: '1000000000'
+      gasPrice: '1000000000',
+      gasLimit: 8000000
     }
 
     this.debug = options.debug || false
@@ -79,7 +82,7 @@ export default class database {
   }
 
   /**
-   * Returns a chainable select object, that finally resolves to a callable Promise
+   * TODO: Returns a chainable select object, that finally resolves to a callable Promise
    */
   select(){
 
@@ -132,8 +135,8 @@ export default class database {
    * 3 = shared, can be any signer
    *
    * @param tableName
-   * @param cols Array of column names, name must be 32 chars or less
-   * @param values - TODO: get the schema (cached) if possible to do the conversion here
+   * @param cols Array of column names as STRINGS, name must be 32 chars or less
+   * @param values - Array of values "as-is", we convert to bytes32 strings here
    * @param options - struct
    * @param options.signer
    *
@@ -142,6 +145,7 @@ export default class database {
   async insertRow(tableName, cols, values, options){
 
     const _defaultOptions = {}
+    const colsLen = cols.length
 
     options = Object.assign(_defaultOptions, options)
 
@@ -149,7 +153,7 @@ export default class database {
       throw new Error('options.id must be a 32 byte hex string prefixed with 0x')
     }
 
-    if (cols.length !== values.length){
+    if (colsLen !== values.length){
       throw new Error('cols, values arrays must be same length')
     }
 
@@ -161,41 +165,47 @@ export default class database {
 
     const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
 
-    // TODO: check cache for table schema? Be lazy for now and always check?
+    // Be lazy for now and always check? TODO: add caching
+    const schema = await this.getTableSchema(tableName)
 
-    let instance, ethAddress
+    // create a map of col name to type
+    const colTypeMap = new Map()
+    schema.columns.map((colData) => {
+
+      const colNameStr = Web3.utils.hexToString(colData.name)
+      const colType = Web3.utils.hexToString(colData._dtype)
+
+      colTypeMap.set(colNameStr, colType)
+    })
+
+    let web3eth, instance, ethAddress
     if (options.ethAddress){
+      web3eth = this.defaultWeb3.eth
       instance = this.defaultInstance
       ethAddress = options.ethAddress
     } else {
+      web3eth = this.ephemeralWeb3.lib.eth
       instance = this.ephemeralInstance
       ethAddress = this.ephemeralWeb3.accounts[0]
     }
 
-    for (let i = 0; i < cols.length; i++){
+    // TODO: parallel inserts with nonces
+    for (let i = 0; i < colsLen; i++){
 
-      let fieldIdTableKey = namehash(`${cols[i]}.${id.substring(2)}.${tableName}`)
-      this.debug && console.log(`fieldIdTableKey = ${fieldIdTableKey}`)
       let fieldKey = keccak256(cols[i])
 
-      this.debug && console.log(
-        tableKey,
-        idKey,
-        fieldKey,
-        id,
-        values[i],
-        ethAddress
-      )
+      const val = this.constructor.castType(colTypeMap.get(cols[i]), values[i])
 
       await instance.methods.insertVal(
         tableKey,
         idKey,
         fieldKey,
         id,
-        values[i]
+        val, // we always insert bytes32 strings
       ).send({
         from: ethAddress
       })
+
     }
 
     return id
@@ -225,8 +235,6 @@ export default class database {
     }
 
     const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
-    const fieldIdTableKey = namehash(`${col}.${id.substring(2)}.${tableName}`)
-    console.log(`fieldIdTableKey = ${fieldIdTableKey}`)
     const fieldKey = keccak256(col)
 
     return this.ephemeralInstance.methods.insertVal(
@@ -400,7 +408,8 @@ export default class database {
    *
    * await ethConfig.elajsUser.defaultWeb3.currentProvider.baseProvider.enable()
    *
-   * This initializes the fortmatic web3 provider to sign transactions
+   * This initializes the fortmatic web3 provider to sign transactions, but we won't do this
+   * too presumptively since they may not be using Fortmatic
    *
    * TODO: we should possibly check if defaultInstance is formatic or Metamask at least (least not ephemeral)
    *
@@ -461,7 +470,8 @@ export default class database {
     ).send({
       useGSN: false,
       from: ethAddress,
-      gasPrice: this.config.gasPrice
+      gasPrice: this.config.gasPrice,
+      gasLimit: 250000
     })
   }
 
@@ -471,9 +481,23 @@ export default class database {
   ************************************************************************************************************
    */
 
-  // fm call only
-  // we pass in ethAddress because we don't wait to wait for a fortmatic async fetch for ethAccounts
+  /**
+   * fm call only
+   *
+   * we pass in ethAddress because we don't wait to wait for a fortmatic async fetch for ethAccounts
+   *
+   * @param tableName
+   * @param permission - INT 1, 2, or 3
+   * @param cols - array of BYTES32 Strings TODO: change this
+   * @param colTypes - array of BYTES32 Strings TODO: change this
+   * @param ethAddress
+   * @returns {*}
+   */
   createTable(tableName, permission, cols, colTypes, ethAddress){
+
+    if (check.not.inRange(permission, 1, 3)){
+      throw new Error(`createTable - permission value "${permission}" wrong`)
+    }
 
     const tableNameValue = Web3.utils.stringToHex(tableName)
     const tableKey = namehash(tableName)
@@ -482,25 +506,15 @@ export default class database {
       throw new Error('cols and colTypes array length mismatch')
     }
 
-
-    if (this.debug){
-      console.log('createTable', tableKey)
-      console.log(tableNameValue)
-      console.log('cols', cols)
-      console.log('colTypes', colTypes)
-
-      // this should only work locally, fortmatic would use a different path
-      console.log(ethAddress || this.defaultWeb3.eth.personal.currentProvider.addresses[0])
-
-      console.log('gasPrice', this.config.gasPrice)
-    }
+    const colsBytes32 = cols.map(Web3.utils.stringToHex)
+    const colTypesBytes32 = colTypes.map(Web3.utils.stringToHex)
 
     return this.defaultInstance.methods.createTable(
       tableNameValue,
       tableKey,
       permission,
-      cols,
-      colTypes
+      colsBytes32,
+      colTypesBytes32
     ).send({
       useGSN: false,
       from: ethAddress || this.defaultWeb3.eth.personal.currentProvider.addresses[0],
@@ -526,5 +540,116 @@ export default class database {
     const tableKey = namehash(tableName)
 
     return await this.ephemeralInstance.methods.getTableIds(tableKey).call()
+  }
+
+  /**
+   * Known types are:
+   * - BYTES32
+   * - STRING
+   * - UINT
+   * - BOOL
+   *
+   * @param colType
+   * @param val
+   *
+   * @return bytes32 string
+   */
+  static castType(colType, val){
+
+    switch (colType){
+
+      // we don't really expect to do anything for BYTES32,
+      // just make sure it's a bytes32 string
+      case constants.FIELD_TYPE.BYTES32:
+        if (check.not.string(val)){
+          throw new Error('BYTES32 expects a string starting with 0x')
+        }
+
+        if (val.length !== 66){
+          throw new Error('BYTES32 expects a string with length 66')
+        }
+        return val
+
+      case constants.FIELD_TYPE.UINT:
+        if (check.not.integer(val) || check.not.greaterOrEqual(val, 0)){
+          throw new Error('UINT expects 0 or positive integers')
+        }
+        return uintToBytes32(val)
+
+      case constants.FIELD_TYPE.STRING:
+        if (check.not.string(val)){
+          throw new Error('STRING expects a string')
+        }
+
+        if (check.not.lessOrEqual(val.length, 32)){
+          throw new Error('STRING max chars is 32')
+        }
+        return Web3.utils.stringToHex(val)
+
+      case constants.FIELD_TYPE.BOOL:
+        if (check.not.boolean(val)){
+          throw new Error('BOOL expects a boolean')
+        }
+        return uintToBytes32(val ? 1 : 0)
+
+      default:
+        throw new Error(`colType: "${colType}" not recognized`)
+    }
+
+  }
+
+  /**
+   * Known types are:
+   * - BYTES32
+   * - STRING
+   * - UINT
+   * - BOOL
+   *
+   * @param colType
+   * @param val
+   */
+  static checkType(colType, val){
+
+    switch (colType){
+
+      // we expect
+      case constants.FIELD_TYPE.BYTES32:
+        if (check.not.string(val)){
+          throw new Error('BYTES32 expects a string starting with 0x')
+        }
+
+        if (val.length !== 66){
+          throw new Error('BYTES32 expects a string with length 66')
+        }
+        break
+
+      case constants.FIELD_TYPE.UINT:
+        val = Web3.utils.hexToNumber(val)
+        if (check.not.integer(val) || check.not.greaterOrEqual(val, 0)){
+          throw new Error('UINT expects 0 or positive integers')
+        }
+        break
+
+      case constants.FIELD_TYPE.STRING:
+        val = Web3.utils.hexToString(val)
+        if (check.not.string(val)){
+          throw new Error('STRING expects a string')
+        }
+
+        // TODO check string length <= 32
+
+        break
+
+      case constants.FIELD_TYPE.BOOL:
+        if (check.not.boolean(val)){
+          throw new Error('BOOL expects a boolean')
+        }
+        break
+
+      default:
+        throw new Error(`colType: "${colType}" not recognized`)
+    }
+
+    return true
   }
 }

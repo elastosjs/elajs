@@ -1,18 +1,8 @@
 
 
-// not really needed - use Web3.utils.stringToHex
-const strToBytes32 = (input) => {
-
-  const targetBuf = new Buffer.alloc(32)
-  const inputBuf = new Buffer.from(input)
-  const inputByteLen = inputBuf.byteLength
-
-  // overflow isn't written
-  inputBuf.copy(targetBuf, inputByteLen < 32 ? 32 - inputByteLen : 0)
-
-  return targetBuf
-}
-
+// we use this over Web3.utils.numberToHex because this pads
+// extra 0's to ensure it's 32 bytes to the left, however strings read
+// left to right so we don't care
 const uintToBytes32 = (input) => {
   const inputBuf = new Buffer.alloc(4)
   inputBuf.writeUInt32BE(input)
@@ -20,10 +10,9 @@ const uintToBytes32 = (input) => {
   const targetBuf = new Buffer.alloc(32)
   inputBuf.copy(targetBuf, 28)
 
-  return targetBuf
+  return '0x' + targetBuf.toString('hex')
 }
 
-export default {
-  strToBytes32,
+export {
   uintToBytes32
 }
