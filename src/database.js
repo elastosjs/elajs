@@ -15,8 +15,8 @@ export default class database {
    */
   constructor(options){
 
-    if (!(options.defaultWeb3 && options.ephemeralWeb3)){
-      throw new Error('Missing required constructor args')
+    if (!options.defaultWeb3 && !options.ephemeralWeb3){
+      throw new Error('You must pass at least 1 of defaultWeb3 or ephemeralWeb3')
     }
 
     /*
@@ -206,11 +206,10 @@ export default class database {
         idKey,
         fieldKey,
         id,
-        val, // we always insert bytes32 strings
+        val // we always insert bytes32 strings
       ).send({
         from: ethAddress
       })
-
     }
 
     return id
@@ -506,8 +505,13 @@ export default class database {
    */
   setDatabase(databaseContractAddr){
     this.databaseContractAddr = databaseContractAddr
-    this.defaultInstance = new this.defaultWeb3.eth.Contract(this.databaseContractABI, databaseContractAddr)
-    this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.databaseContractABI, databaseContractAddr)
+    if (this.defaultWeb3){
+      this.defaultInstance = new this.defaultWeb3.eth.Contract(this.databaseContractABI, databaseContractAddr)
+    }
+
+    if (this.ephemeralWeb3){
+      this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.databaseContractABI, databaseContractAddr)
+    }
   }
 
   /**
@@ -598,6 +602,7 @@ export default class database {
     const colsBytes32 = cols.map(Web3.utils.stringToHex)
     const colTypesBytes32 = colTypes.map(Web3.utils.stringToHex)
 
+
     return this.defaultInstance.methods.createTable(
       tableNameValue,
       tableKey,
@@ -649,9 +654,9 @@ export default class database {
 
     switch (colType){
 
-      // we don't really expect to do anything for BYTES32,
-      // just make sure it's a bytes32 string
+      // we don't really expect to do anything for BYTES strings,
       case constants.FIELD_TYPE.BYTES32:
+      case constants.FIELD_TYPE.ADDRESS:
         return valBytes32
 
       case constants.FIELD_TYPE.UINT:
@@ -689,6 +694,7 @@ export default class database {
       // we don't really expect to do anything for BYTES32,
       // just make sure it's a bytes32 string, which checkType handled
       case constants.FIELD_TYPE.BYTES32:
+      case constants.FIELD_TYPE.ADDRESS:
         return val
 
       case constants.FIELD_TYPE.UINT:
@@ -723,14 +729,23 @@ export default class database {
 
     switch (colType){
 
-      // we expect
       case constants.FIELD_TYPE.BYTES32:
         if (check.not.string(val) || val.substring(0, 2) !== '0x'){
           throw new Error('BYTES32 expects a string starting with 0x')
         }
 
-        if (val.length !== 66){
+        if (val.length !== 2 + 32*2){
           throw new Error('BYTES32 expects a string with length 66')
+        }
+        break
+
+      case constants.FIELD_TYPE.ADDRESS:
+        if (check.not.string(val) || val.substring(0, 2) !== '0x'){
+          throw new Error('ADDRESS expects a string starting with 0x')
+        }
+
+        if (val.length !== 2 + 20*2){
+          throw new Error('ADDRESS expects a string with length 42')
         }
         break
 

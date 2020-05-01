@@ -14,7 +14,8 @@ const constants = {
     BYTES32: 'BYTES32',
     STRING: 'STRING',
     BOOL: 'BOOL',
-    UINT: 'UINT'
+    UINT: 'UINT',
+    ADDRESS: 'ADDRESS'
   }
 }
 
