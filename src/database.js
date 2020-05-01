@@ -221,39 +221,52 @@ export default class database {
    *
    * TODO: the promise should resolve with the fieldIdTableKey and transaction hash
    *
+   * This must return the web3 PromiEvent, so it can't be sync
+   * or have any intermediate await calls
+   *
    * @param tableName
    * @param col
-   * @param val
+   * @param valBytes32 - this breaks from convention and must be casted to bytes32 string first
    * @param options
-   * @returns {*}
+   * @returns web3 PromiEvent
    */
-  /*
-  insertVal(tableName, col, val, options){
+  _insertVal(tableName, col, valBytes32, options){
 
-    if (options && options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
-      throw new Error('options.id must be a 32 byte hex string prefixed with 0x')
-    }
+    const _defaultOptions = {}
+    options = Object.assign(_defaultOptions, options)
 
-    let id = Web3.utils.randomHex(32)
+    let id
 
-    if (options && options.id){
+    if (options.id){
+      // throws error if wrong
+      this.constructor.checkType(constants.FIELD_TYPE.BYTES32, options.id)
       id = options.id
+    } else {
+      id = Web3.utils.randomHex(32)
     }
 
-    const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
+    const { idKey, tableKey } = this._getKeys(tableName, id.substring(2))
     const fieldKey = keccak256(col)
 
-    return this.ephemeralInstance.methods.insertVal(
+    let instance, ethAddress
+    if (options.ethAddress){
+      instance = this.defaultInstance
+      ethAddress = options.ethAddress
+    } else {
+      instance = this.ephemeralInstance
+      ethAddress = this.ephemeralWeb3.accounts[0]
+    }
+
+    return instance.methods.insertVal(
       tableKey,
       idKey,
       fieldKey,
       id,
-      val
+      valBytes32
     ).send({
-      from: this.ephemeralWeb3.accounts[0]
+      from: ethAddress
     })
   }
-   */
 
   async deleteRow(tableName, id, options){
 

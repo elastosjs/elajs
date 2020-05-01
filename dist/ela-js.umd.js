@@ -36711,6 +36711,14 @@
   		},
   		address: "0xF4A9f763edF6Eb7aF10De3cDee1E362D0c865504",
   		updated_at: 1588316043957
+  	},
+  	"1588317139891": {
+  		links: {
+  		},
+  		events: {
+  		},
+  		address: "0xc33472C5f09Ba4d5D2c82eF096Af7d3ed0b58a6e",
+  		updated_at: 1588320515046
   	}
   };
   var ELAJSStoreJSON = {
@@ -38559,41 +38567,55 @@
        *
        * TODO: the promise should resolve with the fieldIdTableKey and transaction hash
        *
+       * This must return the web3 PromiEvent, so it can't be sync
+       * or have any intermediate await calls
+       *
        * @param tableName
        * @param col
-       * @param val
+       * @param valBytes32 - this breaks from convention and must be casted to bytes32 string first
        * @param options
-       * @returns {*}
+       * @returns web3 PromiEvent
        */
 
-      /*
-      insertVal(tableName, col, val, options){
-         if (options && options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
-          throw new Error('options.id must be a 32 byte hex string prefixed with 0x')
+    }, {
+      key: "_insertVal",
+      value: function _insertVal(tableName, col, valBytes32, options) {
+        var _defaultOptions = {};
+        options = Object.assign(_defaultOptions, options);
+        var id;
+
+        if (options.id) {
+          // throws error if wrong
+          this.constructor.checkType(constants.FIELD_TYPE.BYTES32, options.id);
+          id = options.id;
+        } else {
+          id = Web3.utils.randomHex(32);
         }
-         let id = Web3.utils.randomHex(32)
-         if (options && options.id){
-          id = options.id
+
+        var _this$_getKeys2 = this._getKeys(tableName, id.substring(2)),
+            idKey = _this$_getKeys2.idKey,
+            tableKey = _this$_getKeys2.tableKey;
+
+        var fieldKey = keccak256(col);
+        var instance, ethAddress;
+
+        if (options.ethAddress) {
+          instance = this.defaultInstance;
+          ethAddress = options.ethAddress;
+        } else {
+          instance = this.ephemeralInstance;
+          ethAddress = this.ephemeralWeb3.accounts[0];
         }
-         const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
-        const fieldKey = keccak256(col)
-         return this.ephemeralInstance.methods.insertVal(
-          tableKey,
-          idKey,
-          fieldKey,
-          id,
-          val
-        ).send({
-          from: this.ephemeralWeb3.accounts[0]
-        })
+
+        return instance.methods.insertVal(tableKey, idKey, fieldKey, id, valBytes32).send({
+          from: ethAddress
+        });
       }
-       */
-
     }, {
       key: "deleteRow",
       value: function () {
         var _deleteRow = asyncToGenerator( /*#__PURE__*/regenerator.mark(function _callee5(tableName, id, options) {
-          var _defaultOptions, _this$_getKeys2, idKey, tableKey, instance, ethAddress;
+          var _defaultOptions, _this$_getKeys3, idKey, tableKey, instance, ethAddress;
 
           return regenerator.wrap(function _callee5$(_context5) {
             while (1) {
@@ -38602,7 +38624,7 @@
                   _defaultOptions = {};
                   options = Object.assign(_defaultOptions, options);
                   this.constructor.checkType(constants.FIELD_TYPE.BYTES32, id);
-                  _this$_getKeys2 = this._getKeys(tableName, id.substring(2)), idKey = _this$_getKeys2.idKey, tableKey = _this$_getKeys2.tableKey;
+                  _this$_getKeys3 = this._getKeys(tableName, id.substring(2)), idKey = _this$_getKeys3.idKey, tableKey = _this$_getKeys3.tableKey;
 
                   if (options.ethAddress) {
                     instance = this.defaultInstance;
