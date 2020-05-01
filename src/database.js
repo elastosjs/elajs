@@ -127,7 +127,8 @@ export default class database {
    *
    * EPHEMERAL ONLY - TODO add ethAddress!
    *
-   * TODO: we really want to return a Promise immediately, which resolves to all the inserts
+   * TODO: we really want to return a Promise ary immediately, which resolves to all the inserts
+   * TODO: perhaps all methods should have an async and non-async version?
    *
    * There are 3 types of tables
    * 1 = private, must be FORTMATIC signer and only works if it's the owner
@@ -136,7 +137,7 @@ export default class database {
    *
    * @param tableName
    * @param cols Array of column names as STRINGS, name must be 32 chars or less
-   * @param values - Array of values "as-is", we convert to bytes32 strings here
+   * @param values - Array of values "as-is", we convert to bytes32 strings here, based on the schema
    * @param options - struct
    * @param options.signer
    *
@@ -149,8 +150,8 @@ export default class database {
 
     options = Object.assign(_defaultOptions, options)
 
-    if (options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
-      throw new Error('options.id must be a 32 byte hex string prefixed with 0x')
+    if (options.id){
+      this.constructor.checkType(constants.FIELD_TYPE.BYTES32, options.id)
     }
 
     if (colsLen !== values.length){
@@ -175,8 +176,14 @@ export default class database {
       const colNameStr = Web3.utils.hexToString(colData.name)
       const colType = Web3.utils.hexToString(colData._dtype)
 
-      colTypeMap.set(colNameStr, colType)
+      if (cols.includes(colNameStr)){
+        colTypeMap.set(colNameStr, colType)
+      }
     })
+
+    if (colsLen !== colTypeMap.size){
+      throw new Error('invalid column, does not match schema')
+    }
 
     let instance, ethAddress
     if (options.ethAddress){
@@ -192,7 +199,7 @@ export default class database {
 
       let fieldKey = keccak256(cols[i])
 
-      const val = this.constructor.castType(colTypeMap.get(cols[i]), values[i])
+      const val = this.constructor.castToBytes32(colTypeMap.get(cols[i]), values[i])
 
       await instance.methods.insertVal(
         tableKey,
@@ -220,6 +227,7 @@ export default class database {
    * @param options
    * @returns {*}
    */
+  /*
   insertVal(tableName, col, val, options){
 
     if (options && options.id && (options.id.substring(0, 2) !== '0x' || options.id.length !== 66)){
@@ -245,39 +253,85 @@ export default class database {
       from: this.ephemeralWeb3.accounts[0]
     })
   }
+   */
 
-  deleteRow(){
+  async deleteRow(tableName, id, options){
 
+    const _defaultOptions = {}
+
+    options = Object.assign(_defaultOptions, options)
+
+    this.constructor.checkType(constants.FIELD_TYPE.BYTES32, id)
+
+    const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
+
+    let instance, ethAddress
+    if (options.ethAddress){
+      instance = this.defaultInstance
+      ethAddress = options.ethAddress
+    } else {
+      instance = this.ephemeralInstance
+      ethAddress = this.ephemeralWeb3.accounts[0]
+    }
+
+    return await instance.methods.deleteRow(tableKey, idKey, id).send({
+      from: ethAddress
+    })
   }
 
   /**
-   * like _getVal but async and uses fieldType, which is from the schema
+   * Synchronous getter, uses colType, which is from the schema
+   *
+   * TODO: should check schema for type
+   *
+   * @param tableName
+   * @param id
+   * @param colName
+   * @returns {Promise<number|string|boolean>}
    */
-  async getVal(tableName, id, fieldName, fieldType){
+  async getVal(tableName, id, colName){
 
-    let val = await this._getVal(tableName, id, fieldName)
+    // this will check id's format
+    let val = await this._getVal(tableName, id, colName)
+
+    const schema = await this.getTableSchema(tableName)
+
+    let colType = null
+
+    schema.columns.forEach((colData) => {
+      if (Web3.utils.hexToString(colData.name) === colName){
+        colType = Web3.utils.hexToString(colData._dtype)
+      }
+    })
+
+    if (!colType){
+      return new Error(`column "${colName}" not found in schema`)
+    }
 
     // TODO: type parsing? Can't if we return a promise, how to ensure this is fresh?
     // and so what if it isn't? We can't really change a field type right?
-    // const fieldType = this.schema[tableKey][fieldKey].type
-    if (fieldType){
-      switch (fieldType){
+    // const colType = this.schema[tableKey][fieldKey].type
 
-        case constants.FIELD_TYPE.UINT:
-          val = Web3.utils.hexToNumber(val)
-          break
-
-        case constants.FIELD_TYPE.STRING:
-          val = Web3.utils.hexToString(val)
-          break
-
-        case constants.FIELD_TYPE.BOOL:
-          val = !!Web3.utils.hexToNumber(val)
-          break
-      }
-    }
+    val = this.constructor.castFromBytes32(colType, val)
 
     return val
+  }
+
+  /**
+   * This is a call so we can always use ephemeral, has no type handling since this returns a promise
+   * @private
+   */
+  _getVal(tableName, id, colName){
+
+    this.constructor.checkType(constants.FIELD_TYPE.BYTES32, id)
+
+    // always strip the 0x
+    id = id.substring(2)
+
+    const fieldIdTableKey = namehash(`${colName}.${id}.${tableName}`)
+
+    return this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call()
+
   }
 
 
@@ -301,35 +355,59 @@ export default class database {
   }
 
   /**
+   * Async Update
+   *
    * Update a single val, should be called by another fn
    * @private
    */
-  _updateVal(){
+  _updateVal(tableName, id, colName, val, options){
 
-  }
+    this.constructor.checkType(constants.FIELD_TYPE.BYTES32, id)
 
-  /**
-   * This is a call so we can always use ephemeral, has no type handling since this returns a promise
-   *
-   * @param tableName
-   * @param id - Should not have leading 0x
-   * @param fieldName
-   * @private
-   * @returns promise
-   */
-  _getVal(tableName, id, fieldName){
+    const _defaultOptions = {}
+    options = Object.assign(_defaultOptions, options)
 
-    if (id.substring(0, 2) !== '0x' || id.length !== 66){
-      throw new Error('id must be a 32 byte hex string prefixed with 0x')
-    }
+    return new Promise(async (resolve, reject) => {
 
-    // always strip the 0x
-    id = id.substring(2)
+      const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
 
-    const fieldIdTableKey = namehash(`${fieldName}.${id}.${tableName}`)
+      let instance, ethAddress
+      if (options.ethAddress){
+        instance = this.defaultInstance
+        ethAddress = options.ethAddress
+      } else {
+        instance = this.ephemeralInstance
+        ethAddress = this.ephemeralWeb3.accounts[0]
+      }
 
-    return this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call()
+      const schema = await this.getTableSchema(tableName)
 
+      let colType = null
+
+      schema.columns.forEach((colData) => {
+        if (Web3.utils.hexToString(colData.name) === colName){
+          colType = Web3.utils.hexToString(colData._dtype)
+        }
+      })
+
+      if (!colType){
+        reject(new Error(`column "${colName}" not found in schema`))
+        return
+      }
+
+      const fieldKey = keccak256(colName)
+
+      resolve(instance.methods.updateVal(
+        tableKey,
+        idKey,
+        fieldKey,
+
+        id,
+        this.constructor.castToBytes32(colType, val)
+      ).send({
+        from: ethAddress
+      }))
+    })
   }
 
   /**
@@ -541,6 +619,45 @@ export default class database {
   }
 
   /**
+   * Cast bytes32 values from Solidity to the correct JS value & type
+   *
+   * Known types are:
+   * - BYTES32
+   * - STRING
+   * - UINT
+   * - BOOL
+   *
+   * @param colType
+   * @param valBytes32
+   *
+   * @return bytes32 string
+   */
+  static castFromBytes32(colType, valBytes32){
+
+    switch (colType){
+
+      // we don't really expect to do anything for BYTES32,
+      // just make sure it's a bytes32 string
+      case constants.FIELD_TYPE.BYTES32:
+        return valBytes32
+
+      case constants.FIELD_TYPE.UINT:
+        return Web3.utils.hexToNumber(valBytes32)
+
+      case constants.FIELD_TYPE.STRING:
+        return Web3.utils.hexToString(valBytes32)
+
+      case constants.FIELD_TYPE.BOOL:
+        return !!Web3.utils.hexToNumber(valBytes32)
+
+      default:
+        throw new Error(`castToBytes32 - colType: "${colType}" not recognized`)
+    }
+  }
+
+  /**
+   * Cast raw values to the bytes32 value for Solidity
+   *
    * Known types are:
    * - BYTES32
    * - STRING
@@ -549,17 +666,15 @@ export default class database {
    *
    * @param colType
    * @param val
-   *
-   * @return bytes32 string
    */
-  static castType(colType, val){
+  static castToBytes32(colType, val){
 
     this.checkType(colType, val)
 
     switch (colType){
 
       // we don't really expect to do anything for BYTES32,
-      // just make sure it's a bytes32 string
+      // just make sure it's a bytes32 string, which checkType handled
       case constants.FIELD_TYPE.BYTES32:
         return val
 
@@ -573,12 +688,13 @@ export default class database {
         return uintToBytes32(val ? 1 : 0)
 
       default:
-        throw new Error(`colType: "${colType}" not recognized`)
+        throw new Error(`castFromBytes32 - colType: "${colType}" not recognized`)
     }
-
   }
 
   /**
+   * Check if the val matches colType, otherwise throw an error
+   *
    * Known types are:
    * - BYTES32
    * - STRING
@@ -587,6 +703,8 @@ export default class database {
    *
    * @param colType
    * @param val
+   *
+   * @returns true if the value matches the type
    */
   static checkType(colType, val){
 
@@ -594,7 +712,7 @@ export default class database {
 
       // we expect
       case constants.FIELD_TYPE.BYTES32:
-        if (check.not.string(val)){
+        if (check.not.string(val) || val.substring(0, 2) !== '0x'){
           throw new Error('BYTES32 expects a string starting with 0x')
         }
 
@@ -626,7 +744,7 @@ export default class database {
         break
 
       default:
-        throw new Error(`colType: "${colType}" not recognized`)
+        throw new Error(`checkType - colType: "${colType}" not recognized`)
     }
 
     return true

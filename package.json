@@ -1,6 +1,6 @@
 {
   "name": "ela-js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "dist/ela-js.cjs.js",
   "module": "dist/ela-js.esm.js",
