@@ -92,6 +92,7 @@ export default class database {
   }
 
   /**
+   * TODO: this should return a single struct?
    * @param tableName
    * @param id
    * @returns {Promise<void>}

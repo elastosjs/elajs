@@ -38377,6 +38377,7 @@
       // pass a reference to elajs into the constructor?
 
       /**
+       * TODO: this should return a single struct?
        * @param tableName
        * @param id
        * @returns {Promise<void>}
