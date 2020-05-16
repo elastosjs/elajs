@@ -1,6 +1,8 @@
 
 # ela-js - Elastos Community JS SDK - [www.elajs.com](https://www.elajs.com)
 
+#### The connecteor for the elajs decentralized database
+
 See docs at: http://docs.elajs.com
 
 Tutorials at: http://tutorials.elajs.com

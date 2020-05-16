@@ -1,5 +1,3 @@
-
-
 // we use this over Web3.utils.numberToHex because this pads
 // extra 0's to ensure it's 32 bytes to the left, however strings read
 // left to right so we don't care
@@ -13,6 +11,4 @@ const uintToBytes32 = (input) => {
   return '0x' + targetBuf.toString('hex')
 }
 
-export {
-  uintToBytes32
-}
+export { uintToBytes32 }

@@ -1,8 +1,8 @@
 const { Keccak } = require('sha3')
 const sha3 = new Keccak(256)
 
-function namehashInner(input){
-  if (input === ''){
+function namehashInner(input) {
+  if (input === '') {
     return new Buffer.alloc(32)
   }
 
@@ -17,12 +17,14 @@ function namehashInner(input){
 
   sha3.reset()
 
-  const iter = sha3.update(Buffer.concat([namehashInner(remainder), labelSha3])).digest()
+  const iter = sha3
+    .update(Buffer.concat([namehashInner(remainder), labelSha3]))
+    .digest()
   sha3.reset() // TODO: figure out why this needs to be here
   return iter
 }
 
-function namehash(input){
+function namehash(input) {
   return '0x' + namehashInner(input).toString('hex')
 }
 

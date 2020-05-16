@@ -8,21 +8,21 @@ import relayHubData from './relay-hub/data'
 import check from 'check-types'
 
 export default class database {
-
   /**
    *
    * @param options
    */
-  constructor(options){
-
-    if (!options.defaultWeb3 && !options.ephemeralWeb3){
-      throw new Error('You must pass at least 1 of defaultWeb3 or ephemeralWeb3')
+  constructor(options) {
+    if (!options.defaultWeb3 && !options.ephemeralWeb3) {
+      throw new Error(
+        'You must pass at least 1 of defaultWeb3 or ephemeralWeb3'
+      )
     }
 
     /*
-    ************************************************************************************************************
-    * Passed In
-    ************************************************************************************************************
+     ************************************************************************************************************
+     * Passed In
+     ************************************************************************************************************
      */
     this.databaseContractAddr = options.databaseContractAddr
     this.relayHubAddr = options.relayHubAddr
@@ -42,9 +42,9 @@ export default class database {
     this.ephemeralWeb3 = options.ephemeralWeb3
 
     /*
-    ************************************************************************************************************
-    * Internal
-    ************************************************************************************************************
+     ************************************************************************************************************
+     * Internal
+     ************************************************************************************************************
      */
 
     // default instance - points to ElastosJS contract
@@ -58,7 +58,7 @@ export default class database {
 
     this.config = {
       gasPrice: '1000000000',
-      gasLimit: 8000000
+      gasLimit: 8000000,
     }
 
     this.debug = options.debug || false
@@ -71,23 +71,20 @@ export default class database {
     this._initialize()
   }
 
-
   /*
    ******************************************************************************************************
    * Query Functions
    ******************************************************************************************************
    */
-  async getTables(){
+  async getTables() {
     return await this.ephemeralInstance.methods.getTables().call()
   }
 
   /**
    * TODO: Returns a chainable select object, that finally resolves to a callable Promise
    */
-  select(){
-
+  select() {
     // return this? - need to instantiate and return a new Class instance for chaining
-
     // pass a reference to elajs into the constructor?
   }
 
@@ -97,14 +94,14 @@ export default class database {
    * @param id
    * @returns {Promise<void>}
    */
-  async getRow(tableName, id){
-
+  async getRow(tableName, id) {
     const tableKey = namehash(tableName)
 
-    const tableSchema = await this.ephemeralInstance.methods.getSchema(tableKey).call()
+    const tableSchema = await this.ephemeralInstance.methods
+      .getSchema(tableKey)
+      .call()
 
     const colsPromises = tableSchema.columns.map((colData) => {
-
       const fieldName = Web3.utils.hexToString(colData.name)
       const fieldType = Web3.utils.hexToString(colData._dtype)
 
@@ -114,7 +111,7 @@ export default class database {
         return {
           name: fieldName,
           type: Web3.utils.hexToString(colData._dtype),
-          value: val
+          value: val,
         }
       })()
     })
@@ -144,28 +141,27 @@ export default class database {
    *
    * @return the bytes32 id for the row
    */
-  async insertRow(tableName, cols, values, options){
-
+  async insertRow(tableName, cols, values, options) {
     const _defaultOptions = {}
     const colsLen = cols.length
 
     options = Object.assign(_defaultOptions, options)
 
-    if (options.id){
+    if (options.id) {
       this.constructor.checkType(constants.FIELD_TYPE.BYTES32, options.id)
     }
 
-    if (colsLen !== values.length){
+    if (colsLen !== values.length) {
       throw new Error('cols, values arrays must be same length')
     }
 
     let id = Web3.utils.randomHex(32)
 
-    if (options.id){
+    if (options.id) {
       id = options.id
     }
 
-    const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
+    const { idKey, tableKey } = this._getKeys(tableName, id.substring(2))
 
     // Be lazy for now and always check? TODO: add caching, or let it passed in?
     const schema = await this.getTableSchema(tableName)
@@ -173,21 +169,20 @@ export default class database {
     // create a map of col name to type
     const colTypeMap = new Map()
     schema.columns.map((colData) => {
-
       const colNameStr = Web3.utils.hexToString(colData.name)
       const colType = Web3.utils.hexToString(colData._dtype)
 
-      if (cols.includes(colNameStr)){
+      if (cols.includes(colNameStr)) {
         colTypeMap.set(colNameStr, colType)
       }
     })
 
-    if (colsLen !== colTypeMap.size){
+    if (colsLen !== colTypeMap.size) {
       throw new Error('invalid column, does not match schema')
     }
 
     let instance, ethAddress
-    if (options.ethAddress){
+    if (options.ethAddress) {
       instance = this.defaultInstance
       ethAddress = options.ethAddress
     } else {
@@ -196,21 +191,25 @@ export default class database {
     }
 
     // TODO: parallel inserts with nonces
-    for (let i = 0; i < colsLen; i++){
-
+    for (let i = 0; i < colsLen; i++) {
       let fieldKey = keccak256(cols[i])
 
-      const val = this.constructor.castToBytes32(colTypeMap.get(cols[i]), values[i])
+      const val = this.constructor.castToBytes32(
+        colTypeMap.get(cols[i]),
+        values[i]
+      )
 
-      await instance.methods.insertVal(
-        tableKey,
-        idKey,
-        fieldKey,
-        id,
-        val // we always insert bytes32 strings
-      ).send({
-        from: ethAddress
-      })
+      await instance.methods
+        .insertVal(
+          tableKey,
+          idKey,
+          fieldKey,
+          id,
+          val // we always insert bytes32 strings
+        )
+        .send({
+          from: ethAddress,
+        })
     }
 
     return id
@@ -230,14 +229,13 @@ export default class database {
    * @param options
    * @returns web3 PromiEvent
    */
-  _insertVal(tableName, col, valBytes32, options){
-
+  _insertVal(tableName, col, valBytes32, options) {
     const _defaultOptions = {}
     options = Object.assign(_defaultOptions, options)
 
     let id
 
-    if (options.id){
+    if (options.id) {
       // throws error if wrong
       this.constructor.checkType(constants.FIELD_TYPE.BYTES32, options.id)
       id = options.id
@@ -249,7 +247,7 @@ export default class database {
     const fieldKey = keccak256(col)
 
     let instance, ethAddress
-    if (options.ethAddress){
+    if (options.ethAddress) {
       instance = this.defaultInstance
       ethAddress = options.ethAddress
     } else {
@@ -257,29 +255,24 @@ export default class database {
       ethAddress = this.ephemeralWeb3.accounts[0]
     }
 
-    return instance.methods.insertVal(
-      tableKey,
-      idKey,
-      fieldKey,
-      id,
-      valBytes32
-    ).send({
-      from: ethAddress
-    })
+    return instance.methods
+      .insertVal(tableKey, idKey, fieldKey, id, valBytes32)
+      .send({
+        from: ethAddress,
+      })
   }
 
-  async deleteRow(tableName, id, options){
-
+  async deleteRow(tableName, id, options) {
     const _defaultOptions = {}
 
     options = Object.assign(_defaultOptions, options)
 
     this.constructor.checkType(constants.FIELD_TYPE.BYTES32, id)
 
-    const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
+    const { idKey, tableKey } = this._getKeys(tableName, id.substring(2))
 
     let instance, ethAddress
-    if (options.ethAddress){
+    if (options.ethAddress) {
       instance = this.defaultInstance
       ethAddress = options.ethAddress
     } else {
@@ -288,7 +281,7 @@ export default class database {
     }
 
     return await instance.methods.deleteRow(tableKey, idKey, id).send({
-      from: ethAddress
+      from: ethAddress,
     })
   }
 
@@ -302,8 +295,7 @@ export default class database {
    * @param colName
    * @returns {Promise<number|string|boolean>}
    */
-  async getVal(tableName, id, colName){
-
+  async getVal(tableName, id, colName) {
     // this will check id's format
     let val = await this._getVal(tableName, id, colName)
 
@@ -312,12 +304,12 @@ export default class database {
     let colType = null
 
     schema.columns.forEach((colData) => {
-      if (Web3.utils.hexToString(colData.name) === colName){
+      if (Web3.utils.hexToString(colData.name) === colName) {
         colType = Web3.utils.hexToString(colData._dtype)
       }
     })
 
-    if (!colType){
+    if (!colType) {
       return new Error(`column "${colName}" not found in schema`)
     }
 
@@ -334,8 +326,7 @@ export default class database {
    * This is a call so we can always use ephemeral, has no type handling since this returns a promise
    * @private
    */
-  _getVal(tableName, id, colName){
-
+  _getVal(tableName, id, colName) {
     this.constructor.checkType(constants.FIELD_TYPE.BYTES32, id)
 
     // always strip the 0x
@@ -344,19 +335,15 @@ export default class database {
     const fieldIdTableKey = namehash(`${colName}.${id}.${tableName}`)
 
     return this.ephemeralInstance.methods.getRowValue(fieldIdTableKey).call()
-
   }
 
-
-
   /*
-  ************************************************************************************************************
-  * Helpers - should not be called externally
-  ************************************************************************************************************
+   ************************************************************************************************************
+   * Helpers - should not be called externally
+   ************************************************************************************************************
    */
-  _getKeys(tableName, id){
-
-    if (id.substring(0, 2) === '0x'){
+  _getKeys(tableName, id) {
+    if (id.substring(0, 2) === '0x') {
       throw new Error('internal fn _getKeys expects id without 0x prefix')
     }
 
@@ -364,7 +351,7 @@ export default class database {
     const tableKey = namehash(tableName)
     const idTableKey = namehash(`${id}.${tableName}`)
 
-    return {idKey, tableKey, idTableKey}
+    return { idKey, tableKey, idTableKey }
   }
 
   /**
@@ -373,19 +360,17 @@ export default class database {
    * Update a single val, should be called by another fn
    * @private
    */
-  _updateVal(tableName, id, colName, val, options){
-
+  _updateVal(tableName, id, colName, val, options) {
     this.constructor.checkType(constants.FIELD_TYPE.BYTES32, id)
 
     const _defaultOptions = {}
     options = Object.assign(_defaultOptions, options)
 
     return new Promise(async (resolve, reject) => {
-
-      const {idKey, tableKey} = this._getKeys(tableName, id.substring(2))
+      const { idKey, tableKey } = this._getKeys(tableName, id.substring(2))
 
       let instance, ethAddress
-      if (options.ethAddress){
+      if (options.ethAddress) {
         instance = this.defaultInstance
         ethAddress = options.ethAddress
       } else {
@@ -398,28 +383,32 @@ export default class database {
       let colType = null
 
       schema.columns.forEach((colData) => {
-        if (Web3.utils.hexToString(colData.name) === colName){
+        if (Web3.utils.hexToString(colData.name) === colName) {
           colType = Web3.utils.hexToString(colData._dtype)
         }
       })
 
-      if (!colType){
+      if (!colType) {
         reject(new Error(`column "${colName}" not found in schema`))
         return
       }
 
       const fieldKey = keccak256(colName)
 
-      resolve(instance.methods.updateVal(
-        tableKey,
-        idKey,
-        fieldKey,
+      resolve(
+        instance.methods
+          .updateVal(
+            tableKey,
+            idKey,
+            fieldKey,
 
-        id,
-        this.constructor.castToBytes32(colType, val)
-      ).send({
-        from: ethAddress
-      }))
+            id,
+            this.constructor.castToBytes32(colType, val)
+          )
+          .send({
+            from: ethAddress,
+          })
+      )
     })
   }
 
@@ -427,27 +416,31 @@ export default class database {
    * We should setup the web3 components if not passed in
    * @private
    */
-  _initialize(){
-
-    if (this.defaultWeb3 && this.databaseContractAddr){
-      this.defaultInstance = new this.defaultWeb3.eth.Contract(this.databaseContractABI, this.databaseContractAddr)
+  _initialize() {
+    if (this.defaultWeb3 && this.databaseContractAddr) {
+      this.defaultInstance = new this.defaultWeb3.eth.Contract(
+        this.databaseContractABI,
+        this.databaseContractAddr
+      )
     }
 
-    if (this.ephemeralWeb3 && this.databaseContractAddr){
-      this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.databaseContractABI, this.databaseContractAddr)
+    if (this.ephemeralWeb3 && this.databaseContractAddr) {
+      this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(
+        this.databaseContractABI,
+        this.databaseContractAddr
+      )
     }
 
     // 1. fetch table list
     // 2. lazy fetch schema?
   }
 
-
   /*
-  ************************************************************************************************************
-  * Relay Hub
-  ************************************************************************************************************
+   ************************************************************************************************************
+   * Relay Hub
+   ************************************************************************************************************
    */
-  async getGSNBalance(){
+  async getGSNBalance() {
     return await this.ephemeralInstance.methods.getGSNBalance().call()
   }
 
@@ -456,40 +449,41 @@ export default class database {
    * @param contractAddress
    * @param amount to add in Ether
    */
-  addFunds(fromAddress, contractAddress, amount){
-
+  addFunds(fromAddress, contractAddress, amount) {
     const relayHubAddress = this.relayHubAddr
 
-    const relayHubInstance = new this.defaultWeb3.eth.Contract(relayHubData.abi, relayHubAddress, {
-      data: relayHubData.bytecode
-    })
+    const relayHubInstance = new this.defaultWeb3.eth.Contract(
+      relayHubData.abi,
+      relayHubAddress,
+      {
+        data: relayHubData.bytecode,
+      }
+    )
 
     const amtInWei = new Web3.utils.BN(Web3.utils.toWei(amount, 'ether'))
 
     return relayHubInstance.methods.depositFor(contractAddress).send({
       useGSN: false,
       value: amtInWei,
-      from: fromAddress
+      from: fromAddress,
     })
-
   }
 
   /**
    *
    * @param destAddress keep this the same as fromAddress, so user can only withdraw to their own address
    */
-  withdrawAll(destAddress){
+  withdrawAll(destAddress) {
     return this.defaultInstance.methods.withdrawAll(destAddress).send({
       useGSN: false,
-      from: destAddress
+      from: destAddress,
     })
   }
 
-
   /*
-  ************************************************************************************************************
-  * Administrative - Changing Contracts, Deploying/Initializing
-  ************************************************************************************************************
+   ************************************************************************************************************
+   * Administrative - Changing Contracts, Deploying/Initializing
+   ************************************************************************************************************
    */
 
   /**
@@ -504,14 +498,20 @@ export default class database {
    *
    * @param databaseContractAddr
    */
-  setDatabase(databaseContractAddr){
+  setDatabase(databaseContractAddr) {
     this.databaseContractAddr = databaseContractAddr
-    if (this.defaultWeb3){
-      this.defaultInstance = new this.defaultWeb3.eth.Contract(this.databaseContractABI, databaseContractAddr)
+    if (this.defaultWeb3) {
+      this.defaultInstance = new this.defaultWeb3.eth.Contract(
+        this.databaseContractABI,
+        databaseContractAddr
+      )
     }
 
-    if (this.ephemeralWeb3){
-      this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(this.databaseContractABI, databaseContractAddr)
+    if (this.ephemeralWeb3) {
+      this.ephemeralInstance = new this.ephemeralWeb3.lib.eth.Contract(
+        this.databaseContractABI,
+        databaseContractAddr
+      )
     }
   }
 
@@ -519,8 +519,10 @@ export default class database {
    * TODO: revisit if we should be passing ethAddress, this is all client-side anyway though
    * @param ethAddress
    */
-  deployDatabase(ethAddress){
-    const newContract = new this.defaultWeb3.eth.Contract(this.databaseContractABI)
+  deployDatabase(ethAddress) {
+    const newContract = new this.defaultWeb3.eth.Contract(
+      this.databaseContractABI
+    )
 
     /*
     let fromAccount
@@ -537,13 +539,15 @@ export default class database {
     }
      */
 
-    return newContract.deploy({
-      data: this.databaseContractBytecode
-    }).send({
-      useGSN: false,
-      from: ethAddress,
-      gasPrice: this.config.gasPrice
-    })
+    return newContract
+      .deploy({
+        data: this.databaseContractBytecode,
+      })
+      .send({
+        useGSN: false,
+        from: ethAddress,
+        gasPrice: this.config.gasPrice,
+      })
   }
 
   /**
@@ -551,28 +555,25 @@ export default class database {
    *
    * @param ethAddress - from address which will pay for this non-GSN transaction
    */
-  initializeContract(ethAddress){
-
-    if (!this.relayHubAddr){
+  initializeContract(ethAddress) {
+    if (!this.relayHubAddr) {
       throw new Error('Missing relayHub address')
     }
 
     // console.log(ethAddress, this.defaultInstance)
 
-    return this.defaultInstance.methods.initialize(
-      this.relayHubAddr
-    ).send({
+    return this.defaultInstance.methods.initialize(this.relayHubAddr).send({
       useGSN: false,
       from: ethAddress,
       gasPrice: this.config.gasPrice,
-      gasLimit: 250000
+      gasLimit: 250000,
     })
   }
 
   /*
-  ************************************************************************************************************
-  * Schema - Create, Update, Remove Table
-  ************************************************************************************************************
+   ************************************************************************************************************
+   * Schema - Create, Update, Remove Table
+   ************************************************************************************************************
    */
 
   /**
@@ -587,9 +588,8 @@ export default class database {
    * @param ethAddress
    * @returns {*}
    */
-  createTable(tableName, permission, cols, colTypes, ethAddress){
-
-    if (check.not.inRange(permission, 1, 3)){
+  createTable(tableName, permission, cols, colTypes, ethAddress) {
+    if (check.not.inRange(permission, 1, 3)) {
       throw new Error(`createTable - permission value "${permission}" wrong`)
     }
 
@@ -603,35 +603,39 @@ export default class database {
     const colsBytes32 = cols.map(Web3.utils.stringToHex)
     const colTypesBytes32 = colTypes.map(Web3.utils.stringToHex)
 
-
-    return this.defaultInstance.methods.createTable(
-      tableNameValue,
-      tableKey,
-      permission,
-      colsBytes32,
-      colTypesBytes32
-    ).send({
-      useGSN: false,
-      from: ethAddress || this.defaultWeb3.eth.personal.currentProvider.addresses[0],
-      gasPrice: this.config.gasPrice,
-      gas: 1500000
-    })
+    return this.defaultInstance.methods
+      .createTable(
+        tableNameValue,
+        tableKey,
+        permission,
+        colsBytes32,
+        colTypesBytes32
+      )
+      .send({
+        useGSN: false,
+        from:
+          ethAddress ||
+          this.defaultWeb3.eth.personal.currentProvider.addresses[0],
+        gasPrice: this.config.gasPrice,
+        gas: 1500000,
+      })
   }
 
-  async getTableMetadata(tableName){
-
+  async getTableMetadata(tableName) {
     const tableKey = namehash(tableName)
 
-    return await this.ephemeralInstance.methods.getTableMetadata(tableKey).call()
+    return await this.ephemeralInstance.methods
+      .getTableMetadata(tableKey)
+      .call()
   }
 
-  async getTableSchema(tableName){
+  async getTableSchema(tableName) {
     const tableKey = namehash(tableName)
 
     return await this.ephemeralInstance.methods.getSchema(tableKey).call()
   }
 
-  async getTableIds(tableName){
+  async getTableIds(tableName) {
     const tableKey = namehash(tableName)
 
     return await this.ephemeralInstance.methods.getTableIds(tableKey).call()
@@ -651,10 +655,8 @@ export default class database {
    *
    * @return bytes32 string
    */
-  static castFromBytes32(colType, valBytes32){
-
-    switch (colType){
-
+  static castFromBytes32(colType, valBytes32) {
+    switch (colType) {
       // we don't really expect to do anything for BYTES strings,
       case constants.FIELD_TYPE.BYTES32:
       case constants.FIELD_TYPE.ADDRESS:
@@ -686,12 +688,10 @@ export default class database {
    * @param colType
    * @param val
    */
-  static castToBytes32(colType, val){
-
+  static castToBytes32(colType, val) {
     this.checkType(colType, val)
 
-    switch (colType){
-
+    switch (colType) {
       // we don't really expect to do anything for BYTES32,
       // just make sure it's a bytes32 string, which checkType handled
       case constants.FIELD_TYPE.BYTES32:
@@ -708,7 +708,9 @@ export default class database {
         return uintToBytes32(val ? 1 : 0)
 
       default:
-        throw new Error(`castFromBytes32 - colType: "${colType}" not recognized`)
+        throw new Error(
+          `castFromBytes32 - colType: "${colType}" not recognized`
+        )
     }
   }
 
@@ -726,48 +728,46 @@ export default class database {
    *
    * @returns true if the value matches the type
    */
-  static checkType(colType, val){
-
-    switch (colType){
-
+  static checkType(colType, val) {
+    switch (colType) {
       case constants.FIELD_TYPE.BYTES32:
-        if (check.not.string(val) || val.substring(0, 2) !== '0x'){
+        if (check.not.string(val) || val.substring(0, 2) !== '0x') {
           throw new Error('BYTES32 expects a string starting with 0x')
         }
 
-        if (val.length !== 2 + 32*2){
+        if (val.length !== 2 + 32 * 2) {
           throw new Error('BYTES32 expects a string with length 66')
         }
         break
 
       case constants.FIELD_TYPE.ADDRESS:
-        if (check.not.string(val) || val.substring(0, 2) !== '0x'){
+        if (check.not.string(val) || val.substring(0, 2) !== '0x') {
           throw new Error('ADDRESS expects a string starting with 0x')
         }
 
-        if (val.length !== 2 + 20*2){
+        if (val.length !== 2 + 20 * 2) {
           throw new Error('ADDRESS expects a string with length 42')
         }
         break
 
       case constants.FIELD_TYPE.UINT:
-        if (check.not.integer(val) || check.not.greaterOrEqual(val, 0)){
+        if (check.not.integer(val) || check.not.greaterOrEqual(val, 0)) {
           throw new Error('UINT expects 0 or positive integers')
         }
         break
 
       case constants.FIELD_TYPE.STRING:
-        if (check.not.string(val)){
+        if (check.not.string(val)) {
           throw new Error('STRING expects a string')
         }
 
-        if (check.not.lessOrEqual(val.length, 32)){
+        if (check.not.lessOrEqual(val.length, 32)) {
           throw new Error('STRING max chars is 32')
         }
         break
 
       case constants.FIELD_TYPE.BOOL:
-        if (check.not.boolean(val)){
+        if (check.not.boolean(val)) {
           throw new Error('BOOL expects a boolean')
         }
         break

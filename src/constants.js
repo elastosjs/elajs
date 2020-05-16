@@ -2,12 +2,12 @@ const constants = {
   NETWORK: {
     LOCAL: 'LOCAL',
     TESTNET: 'TESTNET',
-    MAINNET: 'MAINNET'
+    MAINNET: 'MAINNET',
   },
 
   SIGNER: {
     EPHEMERAL: 'EPHEMERAL',
-    FORTMATIC: 'FORTMATIC'
+    FORTMATIC: 'FORTMATIC',
   },
 
   FIELD_TYPE: {
@@ -15,8 +15,8 @@ const constants = {
     STRING: 'STRING',
     BOOL: 'BOOL',
     UINT: 'UINT',
-    ADDRESS: 'ADDRESS'
-  }
+    ADDRESS: 'ADDRESS',
+  },
 }
 
 export default constants

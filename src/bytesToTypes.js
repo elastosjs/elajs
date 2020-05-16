@@ -1,7 +1,4 @@
-
-
 import _ from 'lodash'
-
 
 const bytes32ToStr = (buf) => {
   return _.trimStart(buf.toString(), '\u0000')
@@ -15,5 +12,5 @@ const bytes32ToUint = (buf) => {
 
 export default {
   bytes32ToStr,
-  bytes32ToUint
+  bytes32ToUint,
 }

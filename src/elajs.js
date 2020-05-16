@@ -1,4 +1,3 @@
-
 import database from './database'
 
 /**
@@ -17,9 +16,7 @@ import database from './database'
  *    associated with their network as well.
  */
 const elajs = {
-
-  database: database
-
+  database: database,
 }
 
 export default elajs
